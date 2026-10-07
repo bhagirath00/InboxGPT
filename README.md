@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="assets/icon.svg" alt="inboxgpt icon" width="32" height="32" style="vertical-align: middle; margin-right: 8px;" />
-  <strong style="font-size: 28px;">inboxgpt</strong>
+  <img src="assets/icon.svg" alt="inboxgpt icon" width="48" height="48" style="vertical-align: middle; margin-right: 10px;" />
+  <strong style="font-size: 36px; vertical-align: middle;">inboxgpt</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/bhagirath00/InboxGPT"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/bhagirath00/InboxGPT/license.svg?variant=outline&amp;font=geist" /><img alt="license" src="https://shieldcn.dev/github/bhagirath00/InboxGPT/license.svg?variant=outline&amp;mode=light&amp;font=geist" /></picture></a>
+  <a href="https://github.com/bhagirath00/InboxGPT"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/license-MIT.svg?variant=outline&amp;font=geist" /><img alt="license" src="https://shieldcn.dev/badge/license-MIT.svg?variant=outline&amp;mode=light&amp;font=geist" /></picture></a>
   <a href="https://www.npmjs.com/package/inboxgpt"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/inboxgpt.svg?variant=outline&amp;font=geist" /><img alt="version" src="https://shieldcn.dev/npm/inboxgpt.svg?variant=outline&amp;mode=light&amp;font=geist" /></picture></a>
-  <a href="https://github.com/bhagirath00/InboxGPT"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/bhagirath00/InboxGPT/stars.svg?variant=outline&amp;font=geist" /><img alt="stars" src="https://shieldcn.dev/github/bhagirath00/InboxGPT/stars.svg?variant=outline&amp;mode=light&amp;font=geist" /></picture></a>
+  <a href="https://github.com/bhagirath00/InboxGPT"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/stars-github.svg?variant=outline&amp;font=geist" /><img alt="stars" src="https://shieldcn.dev/badge/stars-github.svg?variant=outline&amp;mode=light&amp;font=geist" /></picture></a>
 </p>
 
 Terminal-first AI Gmail executive assistant powered by LangGraph, Google Gemini, and Textual TUI with human-in-the-loop safety.
@@ -66,36 +66,6 @@ inboxgpt
 | `r` | **Refresh** | Sync latest emails from Gmail API |
 | `Space` / `a` | **AI Copilot** | Trigger LangGraph agent prompt |
 | `Esc` / `q` | **Back / Quit** | Return to list view or exit application |
-
----
-
-## CLI Commands
-
-```bash
-# Launch interactive terminal TUI
-inboxgpt
-
-# Switch between multiple Gmail accounts
-inboxgpt switch
-
-# Logout and clear local session tokens
-inboxgpt logout
-
-# Background Daemon: Monitor inbox & prepare briefings periodically
-inboxgpt daemon --interval 30
-
-# One-shot Morning Briefing (prints to terminal and saves to disk)
-inboxgpt brief
-
-# Force fresh live scan for Morning Briefing
-inboxgpt brief --fresh
-
-# Search emails from CLI
-inboxgpt search "invoice" --max 10
-
-# Run local FastAPI backend (optional)
-inboxgpt serve --port 8000
-```
 
 ---
 
