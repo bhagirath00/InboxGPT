@@ -424,7 +424,7 @@ class InboxGPTApp(App):
         yield Header(show_clock=True)
 
         with Horizontal(id="top_bar"):
-            yield Label("▲ INBOXGPT", id="app_title")
+            yield Label("Inboxgpt", id="app_title")
             mode_tag = "Live Gmail Synced" if self.gmail_client.is_live() else "Mock Sandbox"
             yield Label(f"{self.user_email} · [{mode_tag}]", id="account_badge")
             yield Label(f"Total: {self.stats.total_emails}  Unread: {self.stats.unread_emails}", id="stats_summary")
