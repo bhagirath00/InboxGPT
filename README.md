@@ -4,9 +4,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/bhagirath00/InboxGPT"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/license-MIT.svg?variant=outline&amp;font=geist" /><img alt="license" src="https://shieldcn.dev/badge/license-MIT.svg?variant=outline&amp;mode=light&amp;font=geist" /></picture></a>
+  <a href="https://github.com/bhagirath00/InboxGPT"><picture><source media="(prefers-color-scheme: dark)" srcset="https://www.shieldcn.dev/github/license/bhagirath00/InboxGPT.svg?variant=outline&amp;font=geist" /><img alt="license" src="https://www.shieldcn.dev/github/license/bhagirath00/InboxGPT.svg?variant=outline&amp;mode=light&amp;font=geist" /></picture></a>
   <a href="https://www.npmjs.com/package/inboxgpt"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/inboxgpt.svg?variant=outline&amp;font=geist" /><img alt="version" src="https://shieldcn.dev/npm/inboxgpt.svg?variant=outline&amp;mode=light&amp;font=geist" /></picture></a>
-  <a href="https://github.com/bhagirath00/InboxGPT"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/stars-github.svg?variant=outline&amp;font=geist" /><img alt="stars" src="https://shieldcn.dev/badge/stars-github.svg?variant=outline&amp;mode=light&amp;font=geist" /></picture></a>
+  <a href="https://github.com/bhagirath00/InboxGPT"><picture><source media="(prefers-color-scheme: dark)" srcset="https://www.shieldcn.dev/github/stars/bhagirath00/InboxGPT.svg?variant=outline&amp;mode=dark&amp;font=geist" /><img alt="stars" src="https://www.shieldcn.dev/github/stars/bhagirath00/InboxGPT.svg?variant=outline&amp;mode=light&amp;font=geist" /></picture></a>
 </p>
 
 Terminal-first AI Gmail executive assistant powered by LangGraph, Google Gemini, and Textual TUI with human-in-the-loop safety.
@@ -17,8 +17,6 @@ Terminal-first AI Gmail executive assistant powered by LangGraph, Google Gemini,
 * Zero permanent deletions: Archive cleanly removes the Inbox label while preserving everything in "All Mail".
 * Background daemon for automated executive morning briefings and action item digests.
 * Multi-account management with seamless switching and token auto-refresh.
-
-→ NPM: https://www.npmjs.com/package/inboxgpt
 
 ---
 
