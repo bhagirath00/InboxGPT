@@ -1,0 +1,35 @@
+{
+  "name": "inboxgpt",
+  "version": "1.1.0",
+  "description": "Terminal-first AI Gmail management agent with LangGraph Human-in-the-Loop safety.",
+  "main": "bin/inboxgpt.js",
+  "bin": {
+    "inboxgpt": "bin/inboxgpt.js"
+  },
+  "scripts": {
+    "start": "node ./bin/inboxgpt.js",
+    "test": "pytest"
+  },
+  "keywords": [
+    "gmail",
+    "email",
+    "ai",
+    "agent",
+    "langgraph",
+    "langchain",
+    "tui",
+    "terminal",
+    "gemini"
+  ],
+  "author": "InboxGPT Team",
+  "license": "MIT",
+  "files": [
+    "bin/",
+    "inboxgpt/",
+    "README.md",
+    "pyproject.toml"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
