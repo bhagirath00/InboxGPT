@@ -1,6 +1,6 @@
 {
   "name": "inboxgpt",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "Terminal-first AI Gmail management agent with LangGraph Human-in-the-Loop safety.",
   "main": "bin/inboxgpt.js",
   "bin": {
@@ -26,6 +26,7 @@
   "files": [
     "bin/",
     "inboxgpt/",
+    "assets/",
     "README.md",
     "pyproject.toml"
   ],
