@@ -1,0 +1,888 @@
+[
+  [
+    "b01",
+    "security@auth0.com",
+    "Auth0",
+    "Your one-time verification code: 849201",
+    "Use code 849201 for login",
+    "2026-10-08T08:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b02",
+    "alerts@chase.com",
+    "Chase Bank",
+    "Chase Bank alert: Unusual debit card activity detected",
+    "Charge of .50 at Electronics Store",
+    "2026-10-08T08:05:00Z",
+    [
+      "INBOX",
+      "STARRED"
+    ],
+    true,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b03",
+    "billing@aws.amazon.com",
+    "AWS Billing",
+    "Your AWS Invoice for September 2026 (.30)",
+    "Invoice breakdown attached",
+    "2026-10-07T12:00:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b04",
+    "cto@company.com",
+    "David Zhang",
+    "URGENT: Production Release Signoff Required before 6 PM",
+    "Need signoff on v2.4 before release",
+    "2026-10-08T09:00:00Z",
+    [
+      "INBOX",
+      "IMPORTANT"
+    ],
+    true,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b05",
+    "no-reply@github.com",
+    "GitHub Security",
+    "[Security alert] Personal Access Token expiration warning",
+    "Token prod-deploy expires in 3 days",
+    "2026-10-07T14:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b06",
+    "reservations@united.com",
+    "United Airlines",
+    "Your e-Ticket receipt and confirmation: SFO -> JFK",
+    "Flight confirmation UA8921",
+    "2026-10-06T11:00:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b07",
+    "accounts@google.com",
+    "Google Account",
+    "Security warning: New sign-in on Windows device",
+    "New sign-in detected",
+    "2026-10-08T06:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b08",
+    "payroll@gusto.com",
+    "Gusto Payroll",
+    "Your paystub receipt for period ending Sep 30",
+    "Direct deposit has processed",
+    "2026-10-01T10:00:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b09",
+    "tax@turbotax.com",
+    "TurboTax",
+    "Action required: Important Tax Document 1099 Ready",
+    "1099 tax statement available",
+    "2026-10-05T09:30:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b10",
+    "service@stripe.com",
+    "Stripe Identity",
+    "Your Stripe password reset verification link",
+    "Password reset requested",
+    "2026-10-08T07:15:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b11",
+    "dan@tldr.tech",
+    "TLDR Tech",
+    "TLDR Tech: Anthropic releases new Claude models & AI benchmarks",
+    "Newsletter on developer tools",
+    "2026-10-08T06:30:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "newsletter",
+    false,
+    [
+      "archive",
+      "read",
+      "trash"
+    ]
+  ],
+  [
+    "b12",
+    "crew@morningbrew.com",
+    "Morning Brew",
+    "Markets rally on tech earnings + EV market recap",
+    "Daily business newsletter",
+    "2026-10-08T07:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "newsletter",
+    false,
+    [
+      "archive",
+      "read",
+      "trash"
+    ]
+  ],
+  [
+    "b13",
+    "digest@pythonweekly.com",
+    "Python Weekly",
+    "Python Weekly - Issue 654: Asyncio internals & Pydantic v2",
+    "Curated articles and libraries",
+    "2026-10-07T15:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "newsletter",
+    false,
+    [
+      "archive",
+      "read",
+      "trash"
+    ]
+  ],
+  [
+    "b14",
+    "noreply@substack.com",
+    "ByteByteGo",
+    "System Design Newsletter: How Uber scales real-time queries",
+    "Deep dive into distributed systems",
+    "2026-10-06T18:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "newsletter",
+    false,
+    [
+      "archive",
+      "read",
+      "trash"
+    ]
+  ],
+  [
+    "b15",
+    "editor@hackernewsletter.com",
+    "Hacker Newsletter",
+    "Hacker Newsletter #721: Top stories of the week",
+    "Top stories from HN",
+    "2026-10-05T12:00:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "newsletter",
+    false,
+    [
+      "archive",
+      "read",
+      "trash"
+    ]
+  ],
+  [
+    "b16",
+    "digest@medium.com",
+    "Medium Daily",
+    "5 Architectural Patterns Every Senior Engineer Should Know",
+    "Stories on system architecture",
+    "2026-10-07T08:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "newsletter",
+    false,
+    [
+      "archive",
+      "read",
+      "trash"
+    ]
+  ],
+  [
+    "b17",
+    "news@importai.net",
+    "Import AI",
+    "Import AI 410: Synthetic reasoning datasets and agent evaluations",
+    "Weekly roundup of AI research",
+    "2026-10-06T20:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "newsletter",
+    false,
+    [
+      "archive",
+      "read",
+      "trash"
+    ]
+  ],
+  [
+    "b18",
+    "roundup@deno.com",
+    "Deno Weekly",
+    "Deno 2.0 is officially released! Features and migration guide",
+    "All about Deno 2.0",
+    "2026-10-04T16:00:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "newsletter",
+    false,
+    [
+      "archive",
+      "read",
+      "trash"
+    ]
+  ],
+  [
+    "b19",
+    "weekly@rust-lang.org",
+    "Rust Weekly",
+    "This Week in Rust 571",
+    "Updates from the Rust team",
+    "2026-10-03T14:00:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "newsletter",
+    false,
+    [
+      "archive",
+      "read",
+      "trash"
+    ]
+  ],
+  [
+    "b20",
+    "digest@changelog.com",
+    "Changelog",
+    "The software development landscape in late 2026",
+    "Weekly open source digest",
+    "2026-10-02T11:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "newsletter",
+    false,
+    [
+      "archive",
+      "read",
+      "trash"
+    ]
+  ],
+  [
+    "b21",
+    "deals@amazon.com",
+    "Amazon Deals",
+    "Lightning Deals: Up to 50% off Smart Home & Electronics today",
+    "Special discount catalogue",
+    "2026-10-08T05:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "promotional",
+    false,
+    [
+      "trash",
+      "archive"
+    ]
+  ],
+  [
+    "b22",
+    "promo@ubereats.com",
+    "Uber Eats",
+    "Hungry? Get  off your next lunch order with code EATSFREE",
+    "Order before 2 PM for discount",
+    "2026-10-08T11:30:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "promotional",
+    false,
+    [
+      "trash",
+      "archive"
+    ]
+  ],
+  [
+    "b23",
+    "marketing@target.com",
+    "Target Stores",
+    "Circle Week is here! Exclusive member coupons inside",
+    "Shop online to save on groceries",
+    "2026-10-07T10:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "promotional",
+    false,
+    [
+      "trash",
+      "archive"
+    ]
+  ],
+  [
+    "b24",
+    "offers@coursera.org",
+    "Coursera Special",
+    "Master Deep Learning & LLMs with 40% off Coursera Plus",
+    "Limited time discount offer",
+    "2026-10-06T14:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "promotional",
+    false,
+    [
+      "trash",
+      "archive"
+    ]
+  ],
+  [
+    "b25",
+    "sales@nordvpn.com",
+    "NordVPN",
+    "Cyber Month: 72% off 2-Year Plan + 3 Extra Months Free!",
+    "Claim your cybersecurity deal",
+    "2026-10-05T08:00:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "promotional",
+    false,
+    [
+      "trash",
+      "archive"
+    ]
+  ],
+  [
+    "b26",
+    "newsletter@udemy.com",
+    "Udemy Deals",
+    "Flash Sale: Courses starting at .99 for the next 24 hours",
+    "Learn technical skills on sale",
+    "2026-10-04T12:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "promotional",
+    false,
+    [
+      "trash",
+      "archive"
+    ]
+  ],
+  [
+    "b27",
+    "promo@doordash.com",
+    "DoorDash",
+    "Zero dollar delivery fees on all dinner orders over  tonight",
+    "Enjoy free delivery tonight",
+    "2026-10-07T18:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "promotional",
+    false,
+    [
+      "trash",
+      "archive"
+    ]
+  ],
+  [
+    "b28",
+    "rewards@starbucks.com",
+    "Starbucks",
+    "Double Star Day: Earn twice the stars on autumn drinks today!",
+    "Activate double stars in app",
+    "2026-10-06T07:30:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "promotional",
+    false,
+    [
+      "trash",
+      "archive"
+    ]
+  ],
+  [
+    "b29",
+    "marketing@dominos.com",
+    "Dominos Pizza",
+    "Mix & Match Deal: 2 or more items for .99 each",
+    "Carryout pizza coupons",
+    "2026-10-03T17:00:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "promotional",
+    false,
+    [
+      "trash",
+      "archive"
+    ]
+  ],
+  [
+    "b30",
+    "events@webinar-series.com",
+    "AI Summit",
+    "Free Webinar: How Cloud Companies are Adopting Generative AI Agents",
+    "Register for virtual seats",
+    "2026-10-05T15:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "promotional",
+    false,
+    [
+      "trash",
+      "archive"
+    ]
+  ],
+  [
+    "b31",
+    "security-urgent@paypa1-service.com",
+    "PayPal Security",
+    "ALERT: Your PayPal account has been suspended! Verify immediately",
+    "Click here to unlock your wallet",
+    "2026-10-08T04:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "unwanted",
+    false,
+    [
+      "trash"
+    ]
+  ],
+  [
+    "b32",
+    "winner@lottery-intl-global.org",
+    "Prize Dept",
+    "CONGRATULATIONS: You won ,500,000 in International Euro Millions",
+    "Send  transfer fee to claim",
+    "2026-10-07T03:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "unwanted",
+    false,
+    [
+      "trash"
+    ]
+  ],
+  [
+    "b33",
+    "support@crypto-airdrop-giveaway.xyz",
+    "Crypto Promo",
+    "Urgent: Claim your 5.5 ETH Airdrop before smart contract closes",
+    "Connect private seed phrase",
+    "2026-10-06T02:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "unwanted",
+    false,
+    [
+      "trash"
+    ]
+  ],
+  [
+    "b34",
+    "loans@fastcash-advance-direct.biz",
+    "Pre-Approved Cash",
+    "You are approved for ,000 personal loan - No credit check!",
+    "Disbursed in 1 hour no check",
+    "2026-10-05T01:30:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "unwanted",
+    false,
+    [
+      "trash"
+    ]
+  ],
+  [
+    "b35",
+    "prince@royal-heritage-escrow.net",
+    "Barrister Williams",
+    "Confidential business proposal and inheritance transfer",
+    "Transfer  USD estate",
+    "2026-10-04T05:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "unwanted",
+    false,
+    [
+      "trash"
+    ]
+  ],
+  [
+    "b36",
+    "seo-guru@cheapbacklinks-ranking.info",
+    "Alex Ranking",
+    "Rank #1 on Google guaranteed: 10,000 High DA backlinks for ",
+    "Spam backlinks package",
+    "2026-10-03T09:00:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "unwanted",
+    false,
+    [
+      "trash"
+    ]
+  ],
+  [
+    "b37",
+    "weightloss@miracle-keto-diet-pills.club",
+    "Miracle Cure",
+    "Lose 30 pounds in 2 weeks without exercise or diet changes!",
+    "Keto diet supplement pills",
+    "2026-10-02T03:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "unwanted",
+    false,
+    [
+      "trash"
+    ]
+  ],
+  [
+    "b38",
+    "dating@singles-in-your-city.click",
+    "Local Matches",
+    "3 matches in your zip code are waiting to chat with you right now",
+    "Adult dating portal matches",
+    "2026-10-01T23:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "unwanted",
+    false,
+    [
+      "trash"
+    ]
+  ],
+  [
+    "b39",
+    "helpdesk@secure-microsoft-office365-verify.me",
+    "IT Admin",
+    "Your mailbox is full! 5 incoming messages have been quarantined",
+    "Click link to verify credentials",
+    "2026-10-07T13:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "unwanted",
+    false,
+    [
+      "trash"
+    ]
+  ],
+  [
+    "b40",
+    "crypto-robot@ai-trading-millions.top",
+    "Trading Bot",
+    "Automated Trading System made ,210 for new members yesterday",
+    "Deposit  to start bot",
+    "2026-10-06T04:30:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "unwanted",
+    false,
+    [
+      "trash"
+    ]
+  ],
+  [
+    "b41",
+    "alex.chen@company.com",
+    "Alex Chen",
+    "Notes from our 1:1 sync and roadmap priorities for Q4",
+    "Summarizing key action items from 1:1",
+    "2026-10-08T10:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b42",
+    "priya.patel@company.com",
+    "Priya Patel",
+    "PR #421 ready for your code review: refactor async database connection pool",
+    "Whenever you have time today, review PR",
+    "2026-10-08T09:15:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b43",
+    "marcus.v@acme.org",
+    "Marcus Vance",
+    "Candidate interview feedback for Senior Python Engineer position",
+    "Scorecard for system design round",
+    "2026-10-07T16:30:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b44",
+    "mom@family.net",
+    "Mom",
+    "Dinner plans for this Sunday around 6:30 PM?",
+    "Let us know if Sunday dinner works",
+    "2026-10-07T19:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "social",
+    false,
+    [
+      "keep",
+      "archive"
+    ]
+  ],
+  [
+    "b45",
+    "jake.miller@college.edu",
+    "Jake Miller",
+    "Quick catch up coffee sometime this Thursday?",
+    "Free for coffee downtown this week?",
+    "2026-10-06T13:00:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "social",
+    false,
+    [
+      "keep",
+      "archive"
+    ]
+  ],
+  [
+    "b46",
+    "devops-team@company.com",
+    "DevOps On-Call",
+    "Post-Mortem: Incident #904 Database Failover Root Cause Analysis",
+    "Root cause identified as disk I/O saturation",
+    "2026-10-05T11:00:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b47",
+    "emily.watson@partner.io",
+    "Emily Watson",
+    "Contract Agreement Draft for Q4 API Integration Partnership",
+    "Attached is revised NDA for review",
+    "2026-10-04T15:30:00Z",
+    [
+      "INBOX",
+      "STARRED"
+    ],
+    true,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b48",
+    "organizer@meetup.com",
+    "Python Meetup",
+    "Reminder: Monthly Python Meetup starts tomorrow at 6:00 PM",
+    "Agentic Workflows with LangGraph",
+    "2026-10-07T12:00:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "social",
+    false,
+    [
+      "keep",
+      "archive"
+    ]
+  ],
+  [
+    "b49",
+    "support@landlord-portal.com",
+    "Apartment Management",
+    "Maintenance notice: Annual HVAC inspection scheduled for Friday",
+    "Technicians checking AC filters",
+    "2026-10-06T09:00:00Z",
+    [
+      "INBOX"
+    ],
+    false,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ],
+  [
+    "b50",
+    "hr@company.com",
+    "People Operations",
+    "Action required: Open enrollment for health benefits ends in 5 days",
+    "Review health and 401k election",
+    "2026-10-05T08:30:00Z",
+    [
+      "INBOX"
+    ],
+    true,
+    "important",
+    true,
+    [
+      "keep"
+    ]
+  ]
+]
