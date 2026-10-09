@@ -2,7 +2,7 @@
 
 from inboxgpt.agent.graph import create_inbox_graph
 from inboxgpt.gmail.mock_client import MockGmailClient
-from inboxgpt.gmail.models import ActionStatus, ActionType
+from inboxgpt.gmail.models import ActionType
 
 
 def test_agent_graph_triage_and_proposal_generation():

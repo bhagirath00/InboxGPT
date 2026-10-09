@@ -1,10 +1,7 @@
 """Tests for the Background Daemon and Executive Briefing Engine."""
 
-import os
-from pathlib import Path
 from inboxgpt.agent.daemon import DaemonEngine
 from inboxgpt.gmail.mock_client import MockGmailClient
-from inboxgpt.gmail.models import EmailCategory, EmailMessage
 
 
 def test_daemon_engine_generate_briefing():

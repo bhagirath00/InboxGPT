@@ -1,7 +1,6 @@
 """Tests for Mock Gmail service client."""
 
 from inboxgpt.gmail.mock_client import MockGmailClient
-from inboxgpt.gmail.models import EmailCategory, EmailMessage
 
 
 def test_mock_client_list_and_search():
