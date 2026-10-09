@@ -22,15 +22,12 @@ from langgraph.types import Command
 from inboxgpt.agent.graph import create_inbox_graph
 from inboxgpt.agent.tools import ApprovalRequiredTools, SafeInboxTools
 from inboxgpt.agent.triage_agent import plan_agent_cleanup
-from inboxgpt.auth.oauth import get_auth_status
 from inboxgpt.config import config
 from inboxgpt.gmail.client import get_gmail_client
 from inboxgpt.gmail.models import (
-    ActionStatus,
     ActionType,
     EmailCategory,
     EmailMessage,
-    InboxStats,
     ProposedAction,
     RiskLevel,
 )
@@ -38,7 +35,8 @@ from inboxgpt.tui.modals import (
     AgentResultModal,
     ApprovalModal,
     HelpModal,
-    SearchModal,
+    QuitConfirmModal,
+    ReviewTargetEmailsModal,
     SwitchAccountModal,
 )
 
@@ -49,66 +47,122 @@ class AgentCommandModal(ModalScreen[Optional[str]]):
     DEFAULT_CSS = """
     AgentCommandModal {
         align: center middle;
-        background: rgba(0, 0, 0, 0.8);
+        background: rgba(0, 0, 0, 0.88);
     }
 
     #agent_dialog {
-        width: 58;
-        height: 22;
+        width: 64;
+        height: auto;
         padding: 1 2;
-        background: #09090b;
-        border: solid #27272a;
+        background: #000000;
+        border: round #3f3f46;
     }
 
     #agent_modal_title {
         text-style: bold;
-        color: #f4f4f5;
+        color: #ffffff;
         height: 1;
         margin-bottom: 0;
     }
 
     #agent_modal_subtitle {
-        color: #71717a;
+        color: #a1a1aa;
         height: 1;
         margin-bottom: 1;
     }
 
     #agent_cmd_input {
-        background: #121214;
-        color: #ededed;
-        border: solid #27272a;
+        background: #000000;
+        color: #ffffff;
+        border: round #3f3f46;
         margin-bottom: 1;
         height: 3;
     }
 
-    .modal_quick_row {
-        height: 3;
-        margin-bottom: 0;
+    #agent_cmd_input:focus {
+        border: round #71717a;
+        background: #000000;
     }
 
-    .modal_quick_btn {
+    .modal_quick_row {
+        height: 3;
+        margin-bottom: 1;
+    }
+
+    Button.modal_quick_btn, Button.modal_quick_btn.-style-default,
+    .modal_quick_btn,
+    #btn_quick_today, #btn_quick_promo, #btn_quick_news, #btn_quick_sum, #btn_quick_graph {
         margin-right: 1;
-        background: #141416;
-        color: #a1a1aa;
-        border: solid #27272a;
+        background: #000000 !important;
+        background-tint: transparent !important;
+        color: #d4d4d8;
+        border: round #3f3f46 !important;
+        border-top: round #3f3f46 !important;
+        border-bottom: round #3f3f46 !important;
+        border-left: round #3f3f46 !important;
+        border-right: round #3f3f46 !important;
         height: 3;
         width: 1fr;
+        outline: none !important;
+        text-style: not reverse bold !important;
     }
-    .modal_quick_btn:hover {
-        background: #27272a;
+
+    Button.modal_quick_btn:hover, Button.modal_quick_btn:focus, Button.modal_quick_btn.-active,
+    Button.modal_quick_btn.-style-default:hover, Button.modal_quick_btn.-style-default:focus,
+    #btn_quick_today:hover, #btn_quick_today:focus,
+    #btn_quick_promo:hover, #btn_quick_promo:focus,
+    #btn_quick_news:hover, #btn_quick_news:focus,
+    #btn_quick_sum:hover, #btn_quick_sum:focus,
+    #btn_quick_graph:hover, #btn_quick_graph:focus {
+        background: #000000 !important;
+        background-tint: transparent !important;
         color: #ffffff;
+        border: round #71717a !important;
+        border-top: round #71717a !important;
+        border-bottom: round #71717a !important;
+        border-left: round #71717a !important;
+        border-right: round #71717a !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    #btn_cancel, #btn_cancel.-style-default {
+        color: #f87171;
+        border: round #7f1d1d !important;
+        border-top: round #7f1d1d !important;
+        border-bottom: round #7f1d1d !important;
+        border-left: round #7f1d1d !important;
+        border-right: round #7f1d1d !important;
+        background: #000000 !important;
+        background-tint: transparent !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    #btn_cancel:hover, #btn_cancel:focus, #btn_cancel.-active,
+    #btn_cancel.-style-default:hover, #btn_cancel.-style-default:focus {
+        background: #000000 !important;
+        background-tint: transparent !important;
+        color: #ffffff;
+        border: round #ef4444 !important;
+        border-top: round #ef4444 !important;
+        border-bottom: round #ef4444 !important;
+        border-left: round #ef4444 !important;
+        border-right: round #ef4444 !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
     }
     """
 
     def compose(self) -> ComposeResult:
         with Container(id="agent_dialog"):
-            yield Label("▲ Gemini 2.5 Flash Agent", id="agent_modal_title")
+            yield Label("Inbox Agent", id="agent_modal_title")
             yield Static(
-                "Type goal or select quick action:",
+                "Type request, keywords to find, or select action:",
                 id="agent_modal_subtitle",
             )
             yield Input(
-                placeholder="e.g. 'delete today useless emails'...",
+                placeholder="e.g. 'delete today useless emails' or 'find receipt'...",
                 id="agent_cmd_input",
             )
             with Horizontal(classes="modal_quick_row"):
@@ -116,7 +170,7 @@ class AgentCommandModal(ModalScreen[Optional[str]]):
                 yield Button("[2] Trash Promos", id="btn_quick_promo", classes="modal_quick_btn")
             with Horizontal(classes="modal_quick_row"):
                 yield Button("[3] Archive News", id="btn_quick_news", classes="modal_quick_btn")
-                yield Button("[4] Priority Summary", id="btn_quick_sum", classes="modal_quick_btn")
+                yield Button("[4] Inbox Summary Overview", id="btn_quick_sum", classes="modal_quick_btn")
             with Horizontal(classes="modal_quick_row"):
                 yield Button("[5] LangGraph Audit", id="btn_quick_graph", classes="modal_quick_btn")
                 yield Button("[Esc] Cancel", id="btn_cancel", classes="modal_quick_btn")
@@ -235,44 +289,161 @@ class InboxGPTApp(App):
         width: auto;
         height: auto;
         layout: horizontal;
+        background: #000000;
+        border: none;
+        padding: 0;
+        margin: 0;
     }
 
-    .filter_pill {
-        color: #71717a;
-        background: #09090b;
-        border: solid #27272a;
-        margin-right: 1;
-        padding: 0 1;
-        height: 3;
-        text-style: bold;
+    Button, Button.-style-default {
+        background: #000000 !important;
+        background-tint: transparent !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+        border: round #3f3f46 !important;
+        border-top: round #3f3f46 !important;
+        border-bottom: round #3f3f46 !important;
+        border-left: round #3f3f46 !important;
+        border-right: round #3f3f46 !important;
     }
 
-    .filter_pill:hover {
-        background: #18181b;
+    Button:focus, Button:hover, Button.-active,
+    Button.-style-default:focus, Button.-style-default:hover, Button.-style-default.-active {
+        background: #000000 !important;
+        background-tint: transparent !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    .filter_pill, .filter_pill.-style-default {
         color: #d4d4d8;
-    }
-
-    /* Dimmed subtle active tab: sleek zinc box */
-    .filter_pill.active {
-        color: #ffffff;
-        background: #27272a;
-        border: solid #52525b;
-    }
-
-    .action_pill {
-        color: #a1a1aa;
-        background: #09090b;
-        border: solid #27272a;
-        margin-left: 1;
-        padding: 0 2;
+        background: #000000 !important;
+        background-tint: transparent !important;
+        border: round #3f3f46 !important;
+        margin-right: 1;
         height: 3;
-        text-style: bold;
+        outline: none !important;
+        text-style: not reverse bold !important;
     }
 
-    .action_pill:hover {
+    .filter_pill:hover, .filter_pill.-style-default:hover {
+        background: #000000 !important;
+        background-tint: transparent !important;
         color: #ffffff;
-        background: #18181b;
-        border: solid #3f3f46;
+        border: round #71717a !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    .filter_pill:focus, .filter_pill.-style-default:focus {
+        background: #000000 !important;
+        background-tint: transparent !important;
+        color: #ffffff;
+        border: round #a1a1aa !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    .filter_pill.active, .filter_pill.-style-default.active {
+        color: #ffffff;
+        background: #000000 !important;
+        background-tint: transparent !important;
+        border: round #ffffff !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    .action_pill, .action_pill.-style-default {
+        color: #d4d4d8;
+        background: #000000 !important;
+        background-tint: transparent !important;
+        border: round #3f3f46 !important;
+        margin-left: 1;
+        height: 3;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    .action_pill:hover, .action_pill.-style-default:hover {
+        color: #ffffff;
+        background: #000000 !important;
+        background-tint: transparent !important;
+        border: round #71717a !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    .action_pill:focus, .action_pill.-active,
+    .action_pill.-style-default:focus, .action_pill.-style-default.-active {
+        color: #ffffff;
+        background: #000000 !important;
+        background-tint: transparent !important;
+        border: round #a1a1aa !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    #btn_refresh, #btn_refresh.-style-default,
+    #btn_refresh:focus, #btn_refresh:hover, #btn_refresh.-active,
+    #btn_refresh.-style-default:focus, #btn_refresh.-style-default:hover, #btn_refresh.-style-default.-active {
+        background: #000000 !important;
+        background-tint: transparent !important;
+        color: #d4d4d8 !important;
+        border: round #3f3f46 !important;
+        border-top: round #3f3f46 !important;
+        border-bottom: round #3f3f46 !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    #btn_refresh:hover, #btn_refresh.-style-default:hover {
+        color: #ffffff !important;
+        background: #000000 !important;
+        background-tint: transparent !important;
+        border: round #71717a !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    #btn_refresh:focus, #btn_refresh.-style-default:focus {
+        color: #ffffff !important;
+        background: #000000 !important;
+        background-tint: transparent !important;
+        border: round #a1a1aa !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    #btn_agent, #btn_agent.-style-default {
+        color: #f3e8ff;
+        background: #000000 !important;
+        background-tint: transparent !important;
+        border: round #a855f7 !important;
+        border-top: round #a855f7 !important;
+        border-bottom: round #a855f7 !important;
+        margin-left: 1;
+        height: 3;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    #btn_agent:hover, #btn_agent.-style-default:hover {
+        background: #000000 !important;
+        background-tint: transparent !important;
+        color: #ffffff;
+        border: round #c084fc !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
+    }
+
+    #btn_agent:focus, #btn_agent.-active,
+    #btn_agent.-style-default:focus, #btn_agent.-style-default.-active {
+        color: #ffffff;
+        background: #000000 !important;
+        background-tint: transparent !important;
+        border: round #e879f9 !important;
+        outline: none !important;
+        text-style: not reverse bold !important;
     }
 
     /* Keybinding Helper & Status Line across full screen */
@@ -390,6 +561,8 @@ class InboxGPTApp(App):
         Binding("3", "filter_3", "Promo", show=False),
         Binding("4", "filter_4", "Soc", show=False),
         Binding("5", "filter_5", "News", show=False),
+        Binding("u", "undo_last", "Undo", show=True),
+        Binding("shift+d", "permanent_delete_selected", "Perm Delete", show=True),
         Binding("question_mark", "help", "Help", show=True),
     ]
 
@@ -439,7 +612,7 @@ class InboxGPTApp(App):
             yield Static(id="tabs_spacer")
             with Horizontal(id="tabs_right"):
                 yield Button("[r] Sync", id="btn_refresh", classes="action_pill")
-                yield Button("[a] AI Agent", id="btn_agent", classes="action_pill")
+                yield Button("✦ [a] Agent", id="btn_agent")
                 yield Button("[l] Switch", id="btn_switch", classes="action_pill")
                 yield Button("[?] Help", id="btn_help", classes="action_pill")
 
@@ -470,6 +643,10 @@ class InboxGPTApp(App):
         if self.emails:
             self.filter_emails()
         self.load_emails()
+        try:
+            self.query_one('#email_table').focus()
+        except Exception:
+            pass
 
     def on_resize(self, event: events.Resize) -> None:
         """Dynamically recompute column width when terminal is resized."""
@@ -496,6 +673,8 @@ class InboxGPTApp(App):
             self.action_refresh_inbox()
         elif bid == "btn_agent":
             self.action_open_agent()
+        elif bid == "btn_switch":
+            self.action_switch_account()
         elif bid == "btn_help":
             self.action_help()
 
@@ -672,7 +851,7 @@ class InboxGPTApp(App):
         reader = self.query_one("#reader_view_container")
         reader.styles.display = "block"
 
-        self.query_one("#reader_subject", Label).update(f"✉️  {email.subject}")
+        self.query_one("#reader_subject", Label).update(f"{email.subject}")
         meta_str = f"From: {email.sender_name} <{email.sender}>  ·  Date: {email.date}  ·  Category: [{email.category.value.upper()}]"
         self.query_one("#reader_meta_details", Static).update(meta_str)
 
@@ -685,7 +864,7 @@ class InboxGPTApp(App):
         self.set_status(f"Reading: {email.subject[:40]} · [Esc / q] to return")
 
     def action_back_or_quit(self) -> None:
-        """Escape or Q: Back to list if reading, else quit app."""
+        """Escape or Q: Back to list if reading, else prompt confirmation to quit."""
         if self.in_reader_mode:
             self.in_reader_mode = False
             self.query_one("#reader_view_container").styles.display = "none"
@@ -695,7 +874,11 @@ class InboxGPTApp(App):
             table.focus()
             self.set_status(f"Ready · {len(self.displayed_emails)} emails in current view")
         else:
-            self.exit()
+            def on_quit_decision(confirmed: Optional[bool]) -> None:
+                if confirmed:
+                    self.exit()
+
+            self.push_screen(QuitConfirmModal(), on_quit_decision)
 
     # ─── Global Key Listener (Priority Handling) ────────────────────────────
 
@@ -741,6 +924,71 @@ class InboxGPTApp(App):
             self.query_one("#reader_body_scroll", VerticalScroll).scroll_up()
         else:
             self.query_one("#email_table", DataTable).action_cursor_up()
+
+    def action_undo_last(self) -> None:
+        """Revert the most recent trash or archive action from audit journal."""
+        from inboxgpt.agent.audit import audit_manager
+
+        entry = audit_manager.get_last_undoable()
+        if not entry:
+            self.notify("No undoable actions found in audit journal.", severity="warning")
+            return
+
+        res = audit_manager.execute_undo(self.client)
+        if res.success:
+            self.notify(f"✓ Restored {res.affected_count} emails ({entry.action_type})", severity="information")
+            self.action_refresh_inbox()
+        else:
+            self.notify(f"Undo failed: {res.message}", severity="error")
+
+    def action_permanent_delete_selected(self) -> None:
+        """Permanently delete selected email from Gmail servers (with safety check)."""
+        target_email = None
+        if self.in_reader_mode and self.current_reading_email:
+            target_email = self.current_reading_email
+        else:
+            table = self.query_one("#email_table", DataTable)
+            if table.cursor_row is not None and 0 <= table.cursor_row < len(self.displayed_emails):
+                target_email = self.displayed_emails[table.cursor_row]
+
+        if not target_email:
+            return
+
+        from inboxgpt.agent.triage_agent import is_protected_email
+        is_prot, reason = is_protected_email(target_email)
+        if is_prot:
+            self.notify(f"⛔ Protected Email: Cannot delete ({reason})", severity="error")
+            return
+
+        email_id = target_email.id
+        self.emails = [e for e in self.emails if e.id != email_id]
+        self.selected_ids.discard(email_id)
+        config.save_cached_emails(self.emails)
+        self.update_stats()
+        self.filter_emails()
+
+        if self.in_reader_mode:
+            self.action_back_or_quit()
+
+        def _do_delete():
+            from inboxgpt.agent.tools import ApprovalRequiredTools
+            from inboxgpt.gmail.models import ActionType, ProposedAction, RiskLevel
+
+            act = ProposedAction(
+                id=f"del_{email_id[:8]}",
+                title="Permanent Delete",
+                action_type=ActionType.DELETE,
+                target_email_ids=[email_id],
+                count=1,
+                risk_level=RiskLevel.HIGH,
+                description=f"Permanently delete '{target_email.subject[:30]}'",
+            )
+            tools = ApprovalRequiredTools(self.client)
+            tools.execute_delete(act)
+
+        import threading
+        threading.Thread(target=_do_delete, daemon=True).start()
+        self.notify("Permanently deleted email from Gmail.", severity="information")
 
     def action_trash_selected(self) -> None:
         """Move email/thread to Trash in live Gmail immediately."""
@@ -871,17 +1119,17 @@ class InboxGPTApp(App):
                 self.run_langgraph_flow()
             elif any(k in c for k in ("trash", "delete", "clean", "remove", "archive news", "clean promo")):
                 self.run_agent_cleanup_flow(command)
-            elif c in ("summarize priority emails", "priority summary"):
+            elif any(k in c for k in ("summar", "overview", "briefing", "priority summary")):
                 self.run_summarize_flow()
             else:
-                # Autonomous Executive Assistant with ReAct tools and memory
+                # Autonomous Executive Assistant with ReAct tools, search, and memory
                 self.run_executive_assistant_flow(command)
 
         self.push_screen(AgentCommandModal(), handle_agent_choice)
 
     def run_executive_assistant_flow(self, command: str) -> None:
-        """Run autonomous multi-step executive assistant with Gemini and live Gmail tools."""
-        self.set_status(f"🤖 Agent researching: '{command[:35]}...'")
+        """Run autonomous multi-step executive assistant with AI and live Gmail tools."""
+        self.set_status(f"Agent researching: '{command[:35]}...'")
 
         def _bg_assist() -> None:
             try:
@@ -970,11 +1218,15 @@ class InboxGPTApp(App):
                         self.run_worker(_bg_resume, thread=True)
 
                     elif decision == "review":
-                        self.displayed_emails = [e for e in self.emails if e.id in prop.target_email_ids]
-                        self.populate_table()
-                        self.set_status(
-                            f"[LangGraph] Reviewing {len(self.displayed_emails)} targeted emails. Press 'a' to re-run or '1' to reset."
-                        )
+                        def on_review_decision(res: Optional[str]) -> None:
+                            if res == "approve":
+                                on_approval("approve")
+                            elif res == "reject":
+                                on_approval("reject")
+                            else:
+                                self.app.call_from_thread(self.push_screen, ApprovalModal(prop, emails=self.emails), on_approval)
+
+                        self.push_screen(ReviewTargetEmailsModal(prop, self.emails), on_review_decision)
                     else:
                         def _bg_reject() -> None:
                             try:
@@ -988,7 +1240,7 @@ class InboxGPTApp(App):
                         self.run_worker(_bg_reject, thread=True)
                         self.set_status("✗ [LangGraph] Proposal rejected by user.")
 
-                self.app.call_from_thread(self.push_screen, ApprovalModal(prop), on_approval)
+                self.app.call_from_thread(self.push_screen, ApprovalModal(prop, emails=self.emails), on_approval)
 
             except Exception as e:
                 self.app.call_from_thread(self.set_status, f"⚠️ [LangGraph] Error: {e}")
@@ -1026,25 +1278,61 @@ class InboxGPTApp(App):
                 self.run_worker(_bg_execute, thread=True)
 
             elif decision == "review":
-                # Filter inbox to review target emails
-                self.displayed_emails = [e for e in self.emails if e.id in prop.target_email_ids]
-                self.populate_table()
-                self.set_status(f"Displaying {len(self.displayed_emails)} emails targeted by agent. Press 'a' to run or '1' to reset view.")
+                def on_review_decision(res: Optional[str]) -> None:
+                    if res == "approve":
+                        on_approval("approve")
+                    elif res == "reject":
+                        on_approval("reject")
+                    else:
+                        self.push_screen(ApprovalModal(prop, emails=self.emails), on_approval)
+
+                self.push_screen(ReviewTargetEmailsModal(prop, self.emails), on_review_decision)
             else:
                 self.set_status("Agent proposal cancelled.")
 
-        self.push_screen(ApprovalModal(prop), on_approval)
+        self.push_screen(ApprovalModal(prop, emails=self.emails), on_approval)
 
     def run_summarize_flow(self) -> None:
-        prio = [e for e in self.emails if e.category == EmailCategory.IMPORTANT][:5]
-        if not prio:
-            prio = self.emails[:5]
+        self.set_status("⏳ Generating inbox summary overview...")
 
-        lines = [f"Priority Briefing ({len(prio)} Emails):"]
-        for e in prio:
-            lines.append(f"• {e.sender_name or e.sender}: {e.subject}")
+        def _bg_sum() -> None:
+            try:
+                from inboxgpt.agent.assistant import ask_executive_agent
 
-        self.set_status(" · ".join(lines))
+                prompt = (
+                    "Please generate a comprehensive executive summary overview of the current inbox. "
+                    "Highlight priority items, important senders, promotional digests, and key follow-ups."
+                )
+                summary_text = ask_executive_agent(prompt, self.gmail_client, self.emails)
+
+                def show_sum():
+                    self.set_status("✓ Inbox summary ready.")
+                    self.push_screen(AgentResultModal("Inbox Summary Overview", summary_text))
+
+                self.app.call_from_thread(show_sum)
+            except Exception:
+                prio = [e for e in self.emails if e.category == EmailCategory.IMPORTANT]
+                unr = [e for e in self.emails if e.is_unread]
+                lines = [
+                    f"### Inbox Overview ({len(self.emails)} Total Emails)",
+                    f"- **Unread:** {len(unr)} | **Priority:** {len(prio)} | **Promo:** {self.stats.promotional_count} | **News:** {self.stats.newsletter_count} | **Social:** {self.stats.social_count}\n",
+                    "#### Priority Emails:",
+                ]
+                for p in prio[:8]:
+                    dt = f" ({p.date[:10]})" if p.date else ""
+                    lines.append(f"- **{p.sender_name or p.sender}**: {p.subject}{dt}")
+                    if p.snippet:
+                        lines.append(f"  > {p.snippet[:120]}...\n")
+
+                fallback_md = "\n".join(lines)
+
+                def show_fallback():
+                    self.set_status("✓ Inbox summary ready.")
+                    self.push_screen(AgentResultModal("Inbox Summary Overview", fallback_md))
+
+                self.app.call_from_thread(show_fallback)
+
+        self.run_worker(_bg_sum, thread=True)
 
     # ─── Filter Tabs Shortcuts ──────────────────────────────────────────────
 
@@ -1087,25 +1375,3 @@ class InboxGPTApp(App):
                 self.exit(result="LOGOUT")
 
         self.push_screen(SwitchAccountModal(self.user_email), on_switch_decision)
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Support mouse clicking on category filter pills and action pills."""
-        btn_id = event.button.id
-        if btn_id == "tab_all":
-            self.action_filter_1()
-        elif btn_id == "tab_prio":
-            self.action_filter_2()
-        elif btn_id == "tab_promo":
-            self.action_filter_3()
-        elif btn_id == "tab_soc":
-            self.action_filter_4()
-        elif btn_id == "tab_news":
-            self.action_filter_5()
-        elif btn_id == "btn_refresh":
-            self.action_refresh_inbox()
-        elif btn_id == "btn_agent":
-            self.action_open_agent()
-        elif btn_id == "btn_switch":
-            self.action_switch_account()
-        elif btn_id == "btn_help":
-            self.action_help()
