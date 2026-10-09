@@ -1,8 +1,7 @@
 """Executive AI Assistant with autonomous ReAct tool calling and long-term memory."""
 
-import json
-from typing import Any, Dict, List, Optional
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from typing import List, Optional
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import tool
 
 from inboxgpt.agent.llm import get_llm
@@ -17,16 +16,53 @@ def build_assistant_tools(client: GmailServiceProtocol, current_emails: List[Ema
     @tool
     def search_mailbox(query: str, max_results: int = 15) -> str:
         """Search Gmail for emails matching a keyword, sender, or Gmail search syntax."""
+        results = []
         try:
             results = client.list_messages(query=query, max_results=max_results)
-            if not results:
-                return f"No emails found matching query '{query}'."
-            lines = [f"Found {len(results)} emails:"]
-            for e in results:
-                lines.append(f"- ID: {e.id} | From: {e.sender_name or e.sender} | Date: {e.date} | Subject: {e.subject}")
-            return "\n".join(lines)
-        except Exception as ex:
-            return f"Search error: {ex}"
+        except Exception:
+            results = []
+
+        if not results:
+            # Fallback: search loaded emails in memory
+            q_lower = query.lower()
+            results = [
+                e for e in current_emails
+                if q_lower in (e.subject or "").lower()
+                or q_lower in (e.sender_name or "").lower()
+                or q_lower in (e.sender or "").lower()
+                or q_lower in (e.snippet or "").lower()
+            ][:max_results]
+
+        if not results:
+            return f"No emails found matching query '{query}'."
+
+        lines = [f"Found {len(results)} emails:"]
+        for e in results:
+            dt = f"({e.date[:10]})" if e.date else ""
+            lines.append(f"- ID: {e.id} | From: {e.sender_name or e.sender} | Date: {dt} | Subject: {e.subject}")
+        return "\n".join(lines)
+
+    @tool
+    def find_emails_by_keyword(keywords: str) -> str:
+        """Search current inbox emails by personal keywords, sender name, topic, or subject."""
+        terms = [k.strip().lower() for k in keywords.split() if len(k.strip()) > 1]
+        if not terms:
+            terms = [keywords.strip().lower()]
+
+        matches = []
+        for e in current_emails:
+            text_blob = f"{e.subject} {e.sender} {e.sender_name or ''} {e.snippet} {e.body or ''}".lower()
+            if any(t in text_blob for t in terms):
+                matches.append(e)
+
+        if not matches:
+            return f"No loaded emails match keyword(s): '{keywords}'."
+
+        lines = [f"Found {len(matches)} matching email(s):"]
+        for e in matches[:15]:
+            dt = f"({e.date[:10]})" if e.date else ""
+            lines.append(f"• ID: {e.id} | From: {e.sender_name or e.sender} | Subj: {e.subject} {dt}")
+        return "\n".join(lines)
 
     @tool
     def read_email_details(email_id: str) -> str:
@@ -34,7 +70,6 @@ def build_assistant_tools(client: GmailServiceProtocol, current_emails: List[Ema
         try:
             msg = client.get_message(email_id)
             if not msg:
-                # Search in current loaded emails
                 for e in current_emails:
                     if e.id == email_id:
                         msg = e
@@ -75,6 +110,7 @@ def build_assistant_tools(client: GmailServiceProtocol, current_emails: List[Ema
 
     return [
         search_mailbox,
+        find_emails_by_keyword,
         read_email_details,
         create_email_draft,
         save_agent_memory,
@@ -82,29 +118,94 @@ def build_assistant_tools(client: GmailServiceProtocol, current_emails: List[Ema
     ]
 
 
+def _local_search_fallback(query: str, emails: List[EmailMessage]) -> Optional[str]:
+    """Offline keyword search helper when LLM is unavailable or fails."""
+    terms = [k.strip().lower() for k in query.split() if len(k.strip()) > 2 and k.lower() not in ("find", "mail", "emails", "email", "show", "what", "give")]
+    if not terms:
+        terms = [query.strip().lower()]
+
+    matched = []
+    for e in emails:
+        blob = f"{e.subject} {e.sender} {e.sender_name or ''} {e.snippet}".lower()
+        if any(t in blob for t in terms):
+            matched.append(e)
+
+    if not matched:
+        return None
+
+    lines = [
+        f"### Found {len(matched)} Email(s) for '{query}':\n",
+    ]
+    for e in matched[:10]:
+        dt = f" ({e.date[:10]})" if e.date else ""
+        lines.append(f"- **{e.sender_name or e.sender}**: {e.subject}{dt}")
+        if e.snippet:
+            lines.append(f"  > {e.snippet[:120]}...\n")
+    return "\n".join(lines)
+
+
+def _local_summary_fallback(emails: List[EmailMessage]) -> str:
+    """Offline structured summary briefing."""
+    from inboxgpt.gmail.models import EmailCategory
+
+    prio = [e for e in emails if e.category == EmailCategory.IMPORTANT]
+    promo = [e for e in emails if e.category == EmailCategory.PROMOTIONAL]
+    news = [e for e in emails if e.category == EmailCategory.NEWSLETTER]
+    soc = [e for e in emails if e.category == EmailCategory.SOCIAL]
+    unread = [e for e in emails if e.is_unread]
+
+    lines = [
+        f"### Inbox Overview ({len(emails)} Total Emails)",
+        f"- **Unread:** {len(unread)} | **Priority:** {len(prio)} | **Promo:** {len(promo)} | **News:** {len(news)} | **Social:** {len(soc)}\n",
+    ]
+    if prio:
+        lines.append("#### Priority & Important Items:")
+        for p in prio[:8]:
+            dt = f" ({p.date[:10]})" if p.date else ""
+            lines.append(f"- **{p.sender_name or p.sender}**: {p.subject}{dt}")
+            if p.snippet:
+                lines.append(f"  > {p.snippet[:100]}...\n")
+    else:
+        lines.append("#### Recent Inbox Items:")
+        for p in emails[:6]:
+            dt = f" ({p.date[:10]})" if p.date else ""
+            lines.append(f"- **{p.sender_name or p.sender}**: {p.subject}{dt}\n")
+
+    return "\n".join(lines)
+
+
 def ask_executive_agent(
     user_prompt: str,
     client: GmailServiceProtocol,
     current_emails: List[EmailMessage],
 ) -> str:
-    """Execute autonomous multi-step reasoning loop with Gemini and Gmail tools."""
+    """Execute autonomous multi-step reasoning loop with LLM and Gmail tools, with graceful fallbacks."""
     llm = get_llm()
+
+    # If no LLM configured, fulfill with local heuristics
     if not llm:
-        return "Gemini API key is not configured. Please add GEMINI_API_KEY to your .env file."
+        p_lower = user_prompt.lower()
+        if any(w in p_lower for w in ("summar", "overview", "brief", "digest")):
+            return _local_summary_fallback(current_emails)
+        search_res = _local_search_fallback(user_prompt, current_emails)
+        if search_res:
+            return search_res
+        return (
+            "No AI model configured. Add an API key in `.env` (NVIDIA_API_KEY, GROQ_API_KEY, or GEMINI_API_KEY).\n\n"
+            + _local_summary_fallback(current_emails)
+        )
 
     tools = build_assistant_tools(client, current_emails)
     tools_by_name = {t.name: t for t in tools}
-    llm_with_tools = llm.bind_tools(tools)
-
-    user_rules = memory.get_context_prompt()
 
     # Provide high-level context of currently loaded inbox emails
     email_sample = []
-    for e in current_emails[:15]:
+    for e in current_emails[:20]:
         email_sample.append(f"• ID: {e.id} | [{e.category.value.upper()}] From: {e.sender_name or e.sender} | Subj: {e.subject}")
     email_overview = "\n".join(email_sample)
+    user_rules = memory.get_context_prompt()
 
-    system_prompt = f"""You are the InboxGPT Executive Assistant, powered by Gemini.
+    system_prompt = f"""You are the InboxGPT Executive Assistant.
 You have live access to the user's Gmail mailbox via tools.
 
 CORE PRINCIPLES:
@@ -118,12 +219,25 @@ CORE PRINCIPLES:
 3. Current Inbox Preview:
 {email_overview}
 
-Solve the user's request autonomously by invoking relevant tools, and provide a clear, helpful final response."""
+Solve the user's request autonomously. Present findings clearly in Markdown with bold titles and bullet points."""
 
     messages = [
         SystemMessage(content=system_prompt),
         HumanMessage(content=user_prompt),
     ]
+
+    # Try tool calling, falling back to direct invoke if provider doesn't support bind_tools
+    try:
+        llm_with_tools = llm.bind_tools(tools)
+    except Exception:
+        llm_with_tools = None
+
+    if llm_with_tools is None:
+        try:
+            res = llm.invoke(messages)
+            return str(res.content)
+        except Exception:
+            return _local_summary_fallback(current_emails)
 
     # ReAct execution loop (max 4 turns)
     for _ in range(4):
@@ -132,13 +246,11 @@ Solve the user's request autonomously by invoking relevant tools, and provide a 
             messages.append(ai_msg)
 
             if not ai_msg.tool_calls:
-                # Finished reasoning
                 if isinstance(ai_msg.content, list):
                     texts = [c.get("text", "") for c in ai_msg.content if isinstance(c, dict)]
                     return " ".join(texts) or "Done."
                 return str(ai_msg.content)
 
-            # Execute tool calls
             for tc in ai_msg.tool_calls:
                 fn_name = tc["name"]
                 args = tc["args"]
@@ -158,6 +270,13 @@ Solve the user's request autonomously by invoking relevant tools, and provide a 
                     )
                 )
         except Exception as e:
+            # Fall back gracefully to search or summary
+            p_lower = user_prompt.lower()
+            if any(w in p_lower for w in ("summar", "overview", "brief", "digest")):
+                return _local_summary_fallback(current_emails)
+            search_res = _local_search_fallback(user_prompt, current_emails)
+            if search_res:
+                return search_res
             return f"Agent reasoning interrupted: {e}"
 
-    return "Agent completed multi-step analysis."
+    return _local_summary_fallback(current_emails)

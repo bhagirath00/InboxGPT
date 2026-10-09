@@ -1,9 +1,9 @@
 """InboxGPT tool suite partitioned strictly into Safe vs. Approval-Required operations."""
 
-from typing import Any, Dict, List, Optional
-from langchain_core.tools import tool
+from typing import List, Optional
 
 from inboxgpt.gmail.client import GmailServiceProtocol
+from inboxgpt.agent.audit import audit_manager
 from inboxgpt.gmail.models import (
     ActionResult,
     ActionType,
@@ -11,7 +11,6 @@ from inboxgpt.gmail.models import (
     EmailMessage,
     InboxStats,
     ProposedAction,
-    RiskLevel,
 )
 
 
@@ -73,6 +72,31 @@ class ApprovalRequiredTools:
     def __init__(self, gmail_client: GmailServiceProtocol):
         self.client = gmail_client
 
+    def execute_delete(
+        self, action: ProposedAction, dry_run: bool = False
+    ) -> ActionResult:
+        """Permanently delete emails bypassing Trash (protected email safe)."""
+        if action.action_type != ActionType.DELETE:
+            return ActionResult(
+                action_id=action.id,
+                success=False,
+                affected_count=0,
+                message=f"Action type mismatch: expected DELETE, got {action.action_type}",
+            )
+
+        if dry_run:
+            return ActionResult(
+                action_id=action.id,
+                success=True,
+                affected_count=len(action.target_email_ids),
+                message=f"[DRY RUN] Would permanently delete {len(action.target_email_ids)} emails.",
+            )
+
+        result = self.client.batch_delete(action.target_email_ids)
+        from inboxgpt.agent.audit import audit_manager
+        audit_manager.record_action(action, result)
+        return result
+
     def execute_trash(
         self, action: ProposedAction, dry_run: bool = False
     ) -> ActionResult:
@@ -84,7 +108,10 @@ class ApprovalRequiredTools:
                 affected_count=len(action.target_email_ids),
                 message=f"[DRY RUN] Would move {len(action.target_email_ids)} emails to Trash.",
             )
-        return self.client.batch_trash(action.target_email_ids)
+        res = self.client.batch_trash(action.target_email_ids)
+        if res.success and res.affected_count > 0:
+            audit_manager.record_action(action, res)
+        return res
 
     def execute_archive(
         self, action: ProposedAction, dry_run: bool = False
@@ -97,7 +124,10 @@ class ApprovalRequiredTools:
                 affected_count=len(action.target_email_ids),
                 message=f"[DRY RUN] Would archive {len(action.target_email_ids)} emails.",
             )
-        return self.client.batch_archive(action.target_email_ids)
+        res = self.client.batch_archive(action.target_email_ids)
+        if res.success and res.affected_count > 0:
+            audit_manager.record_action(action, res)
+        return res
 
     def execute_label(
         self, action: ProposedAction, label_name: str, dry_run: bool = False

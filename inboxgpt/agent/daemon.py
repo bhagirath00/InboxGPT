@@ -2,18 +2,15 @@
 
 from datetime import datetime
 import json
-import os
-from pathlib import Path
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
 
 from inboxgpt.config import config
 from inboxgpt.gmail.client import GmailServiceProtocol, get_gmail_client
-from inboxgpt.gmail.models import ActionType, EmailCategory, EmailMessage, ProposedAction, RiskLevel
+from inboxgpt.gmail.models import EmailCategory, EmailMessage
 from inboxgpt.agent.llm import get_llm
 from inboxgpt.agent.triage_agent import is_protected_email
 
@@ -97,7 +94,7 @@ class DaemonEngine:
 
         now_str = datetime.now().strftime("%A, %b %d, %Y at %I:%M %p")
         lines = [
-            f"# 🌅 Executive Morning Briefing",
+            "# 🌅 Executive Morning Briefing",
             f"*Generated on {now_str}*",
             "",
             "## 🚨 Immediate Action Items",

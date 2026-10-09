@@ -1,3 +1,4 @@
+from typing import Optional
 """Persistent cross-session memory for InboxGPT agent."""
 
 import json
@@ -9,7 +10,7 @@ from inboxgpt.config import config
 class AgentMemory:
     """Stores and retrieves user-defined rules and learned preferences across sessions."""
 
-    def __init__(self, memory_file: Path = None):
+    def __init__(self, memory_file: Optional[Path] = None):
         self.memory_file = memory_file or (config.config_dir / "agent_memory.json")
 
     def _load(self) -> List[str]:

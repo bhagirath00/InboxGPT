@@ -1,13 +1,16 @@
-"""LLM provider abstraction with Google Gemini support and heuristic fallback."""
+"""LLM provider abstraction with NVIDIA NIM, Groq, Google Gemini, and OpenAI support."""
 
 import json
 import os
 import re
-from typing import Any, Dict, List, Optional
+import warnings
 from pydantic import BaseModel, Field
 
 from inboxgpt.config import config
 from inboxgpt.gmail.models import EmailCategory, EmailMessage
+
+# Suppress fixed-sampling default notice from langchain_google_genai
+warnings.filterwarnings("ignore", category=UserWarning, module="langchain_google_genai")
 
 
 class CategoryDecision(BaseModel):
@@ -18,85 +21,192 @@ class CategoryDecision(BaseModel):
 
 
 def get_llm():
-    """Return configured ChatGoogleGenerativeAI instance if Gemini API key exists, else None."""
-    api_key = config.get_gemini_api_key()
-    if not api_key:
-        return None
+    """Return configured LLM instance (NVIDIA NIM free API, Groq, Gemini, or OpenAI) else None."""
+    provider = config.get_active_provider()
 
-    try:
-        from langchain_google_genai import ChatGoogleGenerativeAI
+    # 1. NVIDIA NIM (Free developer endpoints on build.nvidia.com)
+    if provider == "nvidia":
+        api_key = config.get_nvidia_api_key()
+        if api_key:
+            try:
+                from langchain_openai import ChatOpenAI
+                model_name = config.get_model_name()
+                if not model_name or "gemini" in model_name:
+                    model_name = "z-ai/glm-5.3-flash"
+                return ChatOpenAI(
+                    base_url="https://integrate.api.nvidia.com/v1",
+                    api_key=api_key,
+                    model=model_name,
+                    temperature=0.1,
+                    request_timeout=25,
+                    max_retries=1,
+                )
+            except Exception:
+                pass
 
-        model_name = config.get_model_name()
-        return ChatGoogleGenerativeAI(
-            model=model_name,
-            google_api_key=api_key,
-            temperature=0.1,
-        )
-    except Exception:
-        return None
+    # 2. Groq (Free high-speed cloud inference)
+    if provider == "groq":
+        api_key = config.get_groq_api_key()
+        if api_key:
+            try:
+                from langchain_openai import ChatOpenAI
+                model_name = config.get_model_name()
+                if not model_name or "gemini" in model_name:
+                    model_name = "llama-3.3-70b-versatile"
+                return ChatOpenAI(
+                    base_url="https://api.groq.com/openai/v1",
+                    api_key=api_key,
+                    model=model_name,
+                    temperature=0.1,
+                )
+            except Exception:
+                pass
+
+    # 3. Google Gemini (Native API)
+    if provider == "gemini":
+        api_key = config.get_gemini_api_key()
+        if api_key:
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                model_name = config.get_model_name()
+                if not model_name or "glm" in model_name or "llama" in model_name:
+                    model_name = "gemini-3.5-flash-lite"
+                return ChatGoogleGenerativeAI(
+                    model=model_name,
+                    google_api_key=api_key,
+                )
+            except Exception:
+                pass
+
+    # 4. Standard OpenAI-compatible endpoint
+    if provider == "openai":
+        api_key = config.get_openai_api_key()
+        if api_key:
+            try:
+                from langchain_openai import ChatOpenAI
+                model_name = config.get_model_name()
+                if not model_name or "gemini" in model_name:
+                    model_name = "gpt-4o-mini"
+                base_url = os.getenv("OPENAI_BASE_URL")
+                return ChatOpenAI(
+                    base_url=base_url,
+                    api_key=api_key,
+                    model=model_name,
+                    temperature=0.1,
+                )
+            except Exception:
+                pass
+
+    # Fallbacks if provider wasn't explicitly selected
+    if config.get_nvidia_api_key():
+        try:
+            from langchain_openai import ChatOpenAI
+            model_name = config.get_model_name() or "z-ai/glm-5.3-flash"
+            return ChatOpenAI(
+                base_url="https://integrate.api.nvidia.com/v1",
+                api_key=config.get_nvidia_api_key(),
+                model=model_name,
+                temperature=0.1,
+                request_timeout=25,
+                max_retries=1,
+            )
+        except Exception:
+            pass
+
+    if config.get_gemini_api_key():
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            return ChatGoogleGenerativeAI(
+                model="gemini-3.5-flash-lite",
+                google_api_key=config.get_gemini_api_key(),
+            )
+        except Exception:
+            pass
+
+    return None
 
 
 def heuristic_classify_email(email: EmailMessage) -> CategoryDecision:
-    """Accurate offline heuristic classifier when no Gemini API key is provided."""
-    sub = (email.subject or "").lower()
-    snd = (email.sender or "").lower()
-    s_name = (email.sender_name or "").lower()
-    body = (email.body or "").lower()
+    sub = (email.subject or '').lower()
+    snd = (email.sender or '').lower()
+    s_name = (email.sender_name or '').lower()
+    body = (email.body or '').lower()
 
-    # 1. Important / High Priority (OTPs, Security, Exams, Critical Services)
-    if any(w in sub for w in [
-        "your code", "otp", "verification", "urgent", "security audit", "invoice",
-        "receipt", "withdrawal closes", "roadmap", "critical", "action required"
-    ]) or any(w in snd for w in ["telegram", "godaddy", "icpc", "stripe", "aws"]):
-        return CategoryDecision(
-            category=EmailCategory.IMPORTANT,
-            reasoning="Critical security code, verification alert, or time-sensitive notice.",
-        )
-    if "IMPORTANT" in email.labels:
-        return CategoryDecision(
-            category=EmailCategory.IMPORTANT,
-            reasoning="Flagged important by Gmail priority labels.",
-        )
-
-    # 2. Promotional discounts & marketing offers
-    if any(w in sub for w in [
-        "lowest price", "bootcamp", "50% off", "flash deal", "lightning deals",
-        "promo code", "discount", "% off", "deals", "credit added", "1 month free"
-    ]) or any(w in snd for w in ["flipkart", "classpass", "uber", "amazon", "booking"]):
-        return CategoryDecision(
-            category=EmailCategory.PROMOTIONAL,
-            reasoning="Commercial discount, sale announcement, or marketing campaign.",
-        )
-
-    # 3. Social & Professional Networking / Job alerts
-    if any(w in snd for w in [
-        "linkedin", "naukri", "wellfound", "github", "reddit", "twitter", "x.com", "intch"
-    ]) or any(w in sub for w in ["job alert", "job recommendation", "new jobs", "connection request"]):
-        return CategoryDecision(
-            category=EmailCategory.SOCIAL,
-            reasoning="Social network connection, job alert, or developer activity.",
-        )
-
-    # 4. Newsletters, Developer Publications & Tech Digests
-    if any(w in snd for w in [
-        "medium", "gitbook", "educative", "tldr", "substack", "pragmaticengineer",
-        "codeforces", "neo kim", "javier canales", "alex xu"
-    ]) or any(w in sub for w in ["digest", "newsletter", "weekly", "edition", "daily"]):
-        return CategoryDecision(
-            category=EmailCategory.NEWSLETTER,
-            reasoning="Curated developer newsletter, tech digest, or editorial update.",
-        )
-
-    # 5. Unwanted / Cold outbound pitches
-    if any(w in sub for w in ["airdrop", "5,000 usdt", "crypto", "randomly selected", "b2b leads"]):
+    # 1. Unwanted / Scams / Phishing / Fraud
+    unwanted_kws = [
+        'airdrop', 'crypto', 'eth airdrop', 'usdt', 'randomly selected',
+        'won ', 'you won', 'lottery', 'euro millions', 'inheritance', 'barrister',
+        'unclaimed estate', 'no credit check', 'personal loan', 'fast cash',
+        'miracle cure', 'diet pills', 'lose 30 pounds', 'singles in your city',
+        'dating', 'matches in your zip', 'mailbox is full', 'quarantined',
+        'paypa1', 'trading system', 'trading bot', 'passive income', 'backlinks',
+        'b2b leads', 'unsolicited'
+    ]
+    if any(k in sub or k in body for k in unwanted_kws) or any(s in snd for s in ['giveaway', 'lottery', 'paypa1', 'fastcash', 'miracle']):
         return CategoryDecision(
             category=EmailCategory.UNWANTED,
-            reasoning="Unsolicited sales pitch or suspicious message.",
+            reasoning='Detected spam keywords, unsolicited lottery, or phishing pattern.',
+        )
+
+    # 2. Critical Security, Auth, Invoices, Work Tasks (Important)
+    important_kws = [
+        'your code', 'otp', 'verification', 'security alert', 'security warning',
+        'security audit', 'invoice', 'receipt', 'paystub', 'payroll', '1099',
+        'tax document', 'e-ticket', 'signoff required', 'action required',
+        'incident', 'post-mortem', 'failover', 'candidate interview', 'scorecard',
+        'hvac inspection', 'maintenance notice', 'open enrollment', 'contract agreement',
+        'notes from our 1:1', 'pr #', 'code review', 'password reset', 'debit card activity'
+    ]
+    if any(k in sub for k in important_kws) or any(s in snd for s in ['auth0', 'chase', 'stripe', 'gusto', 'turbotax', 'united.com']):
+        return CategoryDecision(
+            category=EmailCategory.IMPORTANT,
+            reasoning='Critical security code, financial statement, or direct work priority.',
+        )
+    if 'IMPORTANT' in email.labels or 'STARRED' in email.labels or 'STAR' in email.labels:
+        return CategoryDecision(
+            category=EmailCategory.IMPORTANT,
+            reasoning='Flagged important by user star or Gmail priority labels.',
+        )
+
+    # 3. Newsletters & Editorial Publications
+    newsletter_kws = [
+        'tldr', 'morning brew', 'weekly', 'digest', 'newsletter', 'issue ',
+        'bytebytego', 'hacker newsletter', 'system design', 'this week in',
+        'changelog', 'import ai', 'deno', 'deno weekly', 'roundup', 'daily digest'
+    ]
+    if any(s in snd for s in ['deno', 'tldr', 'morningbrew', 'pythonweekly', 'substack', 'hackernewsletter', 'medium', 'importai', 'changelog', 'rust-lang']) or any(k in sub for k in newsletter_kws):
+        return CategoryDecision(
+            category=EmailCategory.NEWSLETTER,
+            reasoning='Curated developer newsletter, tech digest, or editorial update.',
+        )
+
+    # 4. Promotional Marketing, Sales, Discounts & Coupons
+    promo_kws = [
+        '% off', 'deal', 'deals', 'coupon', 'coupons', 'sale', 'flash sale',
+        'lightning deals', 'save big', 'zero dollar delivery', 'free delivery',
+        'double star', 'discount', 'coursera plus', 'webinar', 'free webinar',
+        'promo code', 'limited time', 'order online', 'cashback', 'special offer'
+    ]
+    if any(s in snd for s in ['amazon deals', 'ubereats', 'target', 'coursera', 'nordvpn', 'udemy', 'doordash', 'starbucks', 'dominos']) or any(k in sub for k in promo_kws):
+        return CategoryDecision(
+            category=EmailCategory.PROMOTIONAL,
+            reasoning='Commercial discount, sale announcement, or marketing campaign.',
+        )
+
+    # 5. Social & Personal Networking
+    social_kws = [
+        'dinner plans', 'catch up', 'coffee', 'meetup', 'reunion', 'drinks',
+        'family', 'sunday around', 'lunch together', 'connection request'
+    ]
+    if any(s in snd for s in ['linkedin', 'reddit', 'twitter', 'x.com', 'meetup']) or any(k in sub for k in social_kws):
+        return CategoryDecision(
+            category=EmailCategory.SOCIAL,
+            reasoning='Social network connection, community event, or personal plan.',
         )
 
     return CategoryDecision(
         category=EmailCategory.IMPORTANT if email.is_unread else EmailCategory.UNCATEGORIZED,
-        reasoning="Standard personal correspondence.",
+        reasoning='Standard direct correspondence.',
     )
 
 
