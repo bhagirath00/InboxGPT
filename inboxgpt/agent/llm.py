@@ -31,8 +31,8 @@ def get_llm():
             try:
                 from langchain_openai import ChatOpenAI
                 model_name = config.get_model_name()
-                if not model_name or "gemini" in model_name:
-                    model_name = "z-ai/glm-5.3-flash"
+                if not model_name or "gemini" in model_name or "glm" in model_name:
+                    model_name = "meta/llama-3.2-11b-vision-instruct"
                 return ChatOpenAI(
                     base_url="https://integrate.api.nvidia.com/v1",
                     api_key=api_key,
@@ -69,8 +69,8 @@ def get_llm():
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 model_name = config.get_model_name()
-                if not model_name or "glm" in model_name or "llama" in model_name:
-                    model_name = "gemini-3.5-flash-lite"
+                if not model_name or "glm" in model_name or "llama" in model_name or "2.5" in model_name or "3.5" in model_name:
+                    model_name = "gemini-3.8-flash"
                 return ChatGoogleGenerativeAI(
                     model=model_name,
                     google_api_key=api_key,
@@ -101,7 +101,9 @@ def get_llm():
     if config.get_nvidia_api_key():
         try:
             from langchain_openai import ChatOpenAI
-            model_name = config.get_model_name() or "z-ai/glm-5.3-flash"
+            model_name = config.get_model_name()
+            if not model_name or "glm" in model_name:
+                model_name = "meta/llama-3.2-11b-vision-instruct"
             return ChatOpenAI(
                 base_url="https://integrate.api.nvidia.com/v1",
                 api_key=config.get_nvidia_api_key(),
@@ -117,7 +119,7 @@ def get_llm():
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
             return ChatGoogleGenerativeAI(
-                model="gemini-3.5-flash-lite",
+                model="gemini-3.8-flash",
                 google_api_key=config.get_gemini_api_key(),
             )
         except Exception:
