@@ -1,6 +1,5 @@
 """Google OAuth 2.0 flow and token management for Gmail API."""
 
-import os
 import socket
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -80,7 +79,7 @@ def run_oauth_flow(
     timeout_seconds: int = 60,
 ) -> Credentials:
     """Execute the browser-based OAuth 2.0 consent flow and store the token.
-    
+
     Enforces a strict 60-second timeout. If the user does not log in within 60 seconds,
     the server terminates immediately and any session or token is destroyed.
     """
