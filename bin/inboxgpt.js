@@ -5,19 +5,43 @@
  * Seamlessly routes command execution to the underlying Python TUI / CLI agent.
  */
 
-const { spawn } = require("child_process");
+const { spawn, execSync } = require("child_process");
 const path = require("path");
 
 function findPythonCommand() {
   const candidates = process.platform === "win32" 
     ? ["python", "py", "python3"] 
     : ["python3", "python"];
+  for (const cmd of candidates) {
+    try {
+      execSync(`${cmd} --version`, { stdio: "ignore" });
+      return cmd;
+    } catch (_) {}
+  }
   return candidates[0];
+}
+
+function ensureDependencies(pythonCmd, packageDir) {
+  try {
+    execSync(`${pythonCmd} -c "import textual, langgraph, google.auth"`, { stdio: "ignore" });
+  } catch (_) {
+    console.log("\x1b[36m[InboxGPT]\x1b[0m Installing required Python dependencies on first run...");
+    try {
+      execSync(`${pythonCmd} -m pip install -e "${packageDir}"`, { stdio: "inherit" });
+      console.log("\x1b[32m[InboxGPT]\x1b[0m Setup complete!\n");
+    } catch (err) {
+      console.error("\x1b[31m[InboxGPT Error]\x1b[0m Failed to auto-install dependencies:", err.message);
+      console.log("Please run manually: pip install -e .");
+    }
+  }
 }
 
 function run() {
   const pythonCmd = findPythonCommand();
   const packageDir = path.resolve(__dirname, "..");
+
+  ensureDependencies(pythonCmd, packageDir);
+
   const env = { ...process.env };
   env.PYTHONPATH = env.PYTHONPATH 
     ? `${packageDir}${path.delimiter}${env.PYTHONPATH}`

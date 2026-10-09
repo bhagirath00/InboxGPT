@@ -1,7 +1,6 @@
 import sys
 from typing import Optional
 import typer
-from rich import print
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -19,7 +18,7 @@ if sys.platform == "win32":
 from inboxgpt.auth.oauth import get_auth_status, run_oauth_flow
 from inboxgpt.config import config
 from inboxgpt.gmail.client import get_gmail_client
-from inboxgpt.gmail.models import ActionStatus, ActionType, EmailCategory
+from inboxgpt.gmail.models import ActionType
 from inboxgpt.agent.graph import create_inbox_graph
 from inboxgpt.agent.tools import ApprovalRequiredTools, SafeInboxTools
 
@@ -41,6 +40,22 @@ def default_entry(
 ):
     """Launch the interactive TUI if no subcommand is provided."""
     if ctx.invoked_subcommand is None:
+        if not mock:
+            status = get_auth_status()
+            if not status.get("google_token_valid"):
+                console.print(Panel.fit(
+                    "[bold white]Inboxgpt[/bold white] 📬⚡\n"
+                    "[dim]Terminal-first AI Gmail Executive Assistant[/dim]",
+                    border_style="cyan",
+                ))
+                console.print("\n[bold yellow]No active Gmail session found.[/bold yellow]")
+                if Confirm.ask("Sign in with Google now to connect your Gmail? [y/n]", default=True):
+                    login_command()
+                    return
+                else:
+                    console.print("[dim]Operation cancelled. Goodbye![/dim]")
+                    raise typer.Exit()
+
         from inboxgpt.tui.app import InboxGPTApp
 
         tui_app = InboxGPTApp(force_mock=mock)
@@ -54,20 +69,40 @@ def default_entry(
 @app.command("auth")
 def auth_command(
     set_gemini_key: Optional[str] = typer.Option(
-        None, "--gemini-key", help="Provide and save your Gemini API key."
+        None, "--gemini-key", help="Provide and save your Google Gemini API key."
+    ),
+    set_nvidia_key: Optional[str] = typer.Option(
+        None, "--nvidia-key", "-n", help="Provide and save your NVIDIA NIM API key (free endpoints on build.nvidia.com)."
+    ),
+    set_groq_key: Optional[str] = typer.Option(
+        None, "--groq-key", "-g", help="Provide and save your Groq API key (free high-speed inference)."
     ),
 ):
-    """Authenticate with Google OAuth and configure Gemini API key."""
+    """Authenticate with Google OAuth and configure AI models (NVIDIA NIM free API, Groq, Gemini)."""
     console.print(Panel.fit("[bold cyan]InboxGPT Authentication & Setup[/bold cyan]"))
 
     if set_gemini_key:
         config.set_gemini_api_key(set_gemini_key)
         console.print("[green]✓[/green] Gemini API key stored successfully in local config.")
+    if set_nvidia_key:
+        config.set_nvidia_api_key(set_nvidia_key)
+        console.print("[green]✓[/green] NVIDIA NIM API key stored successfully in local config.")
+    if set_groq_key:
+        config.set_groq_api_key(set_groq_key)
+        console.print("[green]✓[/green] Groq API key stored successfully in local config.")
 
+    active_provider = config.get_active_provider()
     current_status = get_auth_status()
     console.print(f"• Config directory: [bold]{config.config_dir}[/bold]")
+    console.print(f"• Active AI Provider: [bold cyan]{active_provider.upper()}[/bold cyan]")
     console.print(
-        f"• Gemini API Key: {'[green]Configured[/green]' if current_status['gemini_api_key_configured'] else '[yellow]Not configured (using heuristic fallback)[/yellow]'}"
+        f"• NVIDIA NIM (Free API): {'[green]Configured[/green]' if config.get_nvidia_api_key() else '[dim]Not configured[/dim]'}"
+    )
+    console.print(
+        f"• Groq (Free API): {'[green]Configured[/green]' if config.get_groq_api_key() else '[dim]Not configured[/dim]'}"
+    )
+    console.print(
+        f"• Gemini API Key: {'[green]Configured[/green]' if current_status['gemini_api_key_configured'] else '[dim]Not configured[/dim]'}"
     )
     console.print(
         f"• Google Client Secrets: {'[green]Found[/green]' if current_status['google_credentials_file_found'] else f'[red]Missing at {config.credentials_file}[/red]'}"
@@ -330,7 +365,6 @@ def serve_command(
 ):
     """Start the FastAPI backend server for remote or hosted usage."""
     import uvicorn
-    from inboxgpt.api.app import create_app
 
     console.print(f"[bold cyan]Starting InboxGPT API server on http://{host}:{port}...[/bold cyan]")
     uvicorn.run("inboxgpt.api.app:app", host=host, port=port, reload=False)
@@ -383,6 +417,138 @@ def brief_command(
         briefing, count = engine.run_cycle()
         console.print(Panel(Markdown(briefing), title="🌅 Executive Briefing", border_style="cyan"))
         console.print(f"[green]✓ Briefing updated across {count} emails.[/green]")
+
+
+
+@app.command("undo")
+def undo_command(
+    action_id: Optional[str] = typer.Argument(None, help="Specific action ID to undo (e.g. 6d863207). If omitted, reverts the latest action."),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
+    mock: bool = typer.Option(False, "--mock", help="Operate in offline mock sandbox"),
+):
+    """Revert an approved cleanup action (restore trashed or archived emails)."""
+    from inboxgpt.agent.audit import audit_manager
+
+    if action_id:
+        target_action = audit_manager.get_entry_by_id(action_id)
+        if not target_action:
+            console.print(f"[bold red]✗ Action ID '{action_id}' not found in audit journal.[/bold red]")
+            return
+    else:
+        target_action = audit_manager.get_last_undoable()
+        if not target_action:
+            console.print("[yellow]No undoable actions found in audit journal.[/yellow]")
+            return
+
+    if target_action.action_type == "delete":
+        console.print("[bold red]⛔ Cannot undo: permanent deletions are purged from Gmail servers.[/bold red]")
+        return
+
+    console.print(Panel(
+        f"[bold]Action ID:[/bold] {target_action.id}\n"
+        f"[bold]Type:[/bold] {target_action.action_type.upper()}\n"
+        f"[bold]Description:[/bold] {target_action.description}\n"
+        f"[bold]Affected Emails:[/bold] {target_action.affected_count}\n"
+        f"[bold]Timestamp:[/bold] {target_action.timestamp}",
+        title="[bold cyan]↺ Action to Revert[/bold cyan]",
+        border_style="cyan",
+    ))
+
+    if not yes:
+        if not Confirm.ask("Are you sure you want to revert this action and restore these emails?", default=True):
+            console.print("[dim]Undo operation cancelled.[/dim]")
+            return
+
+    client = get_gmail_client(force_mock=mock)
+    with console.status("[cyan]Reverting action and restoring emails...[/cyan]"):
+        result = audit_manager.execute_undo(client, action_id=target_action.id)
+
+    if result.success:
+        console.print(f"[bold green]✓ {result.message}[/bold green]")
+    else:
+        console.print(f"[bold red]✗ Failed to undo: {result.message}[/bold red]")
+
+
+@app.command("delete")
+def delete_command(
+    email_id: str = typer.Argument(..., help="Email message ID to permanently delete from Gmail"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
+    mock: bool = typer.Option(False, "--mock", help="Operate in offline mock sandbox"),
+):
+    """Permanently delete an email from Gmail servers (bypasses Trash)."""
+    from inboxgpt.agent.triage_agent import is_protected_email
+    from inboxgpt.agent.tools import ApprovalRequiredTools
+    from inboxgpt.gmail.models import ActionType, ProposedAction, RiskLevel
+
+    client = get_gmail_client(force_mock=mock)
+    email = client.get_message(email_id)
+    if not email:
+        console.print(f"[bold red]✗ Email '{email_id}' not found.[/bold red]")
+        return
+
+    is_prot, reason = is_protected_email(email)
+    if is_prot:
+        console.print(f"[bold red]⛔ INVIOLABLE SAFETY INVARIANT: Cannot delete protected email ({reason})![/bold red]")
+        return
+
+    console.print(Panel(
+        f"[bold]Email ID:[/bold] {email.id}\n"
+        f"[bold]From:[/bold] {email.sender_name or email.sender}\n"
+        f"[bold]Subject:[/bold] {email.subject}\n"
+        "[bold red]⚠️ WARNING: This permanently deletes the message from Gmail servers.\nIt CANNOT be recovered via Trash or Undo![/bold red]",
+        title="[bold red]⚠️ PERMANENT DELETE CONFIRMATION[/bold red]",
+        border_style="red",
+    ))
+
+    if not yes:
+        if not Confirm.ask("Are you ABSOLUTELY sure you want to permanently delete this email?", default=False):
+            console.print("[dim]Permanent deletion cancelled.[/dim]")
+            return
+
+    action = ProposedAction(
+        id=f"del_{email.id[:8]}",
+        title=f"Permanent delete {email.id}",
+        action_type=ActionType.DELETE,
+        target_email_ids=[email.id],
+        count=1,
+        risk_level=RiskLevel.HIGH,
+        description=f"Permanently delete '{email.subject[:30]}'",
+    )
+
+    tools = ApprovalRequiredTools(client)
+    with console.status("[red]Permanently deleting message from Gmail...[/red]"):
+        res = tools.execute_delete(action)
+
+    if res.success:
+        console.print(f"[bold green]✓ {res.message}[/bold green]")
+    else:
+        console.print(f"[bold red]✗ Failed to delete: {res.message}[/bold red]")
+
+
+@app.command("history")
+def history_command(limit: int = typer.Option(10, "--limit", "-n", help="Number of entries to show")):
+    """View recent audit history of approved agent actions."""
+    from inboxgpt.agent.audit import audit_manager
+    from rich.table import Table
+
+    entries = audit_manager.list_history(limit=limit)
+    if not entries:
+        console.print("[dim]Audit history is empty.[/dim]")
+        return
+
+    table = Table(title="InboxGPT Audit Log Journal", border_style="cyan")
+    table.add_column("ID", style="bold cyan")
+    table.add_column("Time", style="dim")
+    table.add_column("Action", style="magenta")
+    table.add_column("Count", justify="right")
+    table.add_column("Status", style="bold")
+    table.add_column("Description")
+
+    for e in entries:
+        status = "[red]UNDONE[/red]" if e.undone else "[green]ACTIVE[/green]"
+        table.add_row(e.id, e.timestamp[:19], e.action_type.upper(), str(e.affected_count), status, e.description)
+
+    console.print(table)
 
 
 def main():

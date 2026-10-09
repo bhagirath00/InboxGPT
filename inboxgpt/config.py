@@ -23,6 +23,7 @@ class Config:
         self.config_file = self.config_dir / "config.json"
         self.credentials_file = self.config_dir / "credentials.json"
         self.token_file = self.config_dir / "token.json"
+        self.log_file = self.config_dir / "inboxgpt.log"
 
     def _load_json(self, path: Path) -> Dict[str, Any]:
         if path.exists():
@@ -57,6 +58,48 @@ class Config:
 
     def set_gemini_api_key(self, key: str) -> None:
         self.update_settings({"gemini_api_key": key.strip()})
+
+    def get_nvidia_api_key(self) -> Optional[str]:
+        env_key = os.getenv("NVIDIA_API_KEY")
+        if env_key:
+            return env_key.strip()
+        return self.get_settings().get("nvidia_api_key")
+
+    def set_nvidia_api_key(self, key: str) -> None:
+        self.update_settings({"nvidia_api_key": key.strip()})
+
+    def get_groq_api_key(self) -> Optional[str]:
+        env_key = os.getenv("GROQ_API_KEY")
+        if env_key:
+            return env_key.strip()
+        return self.get_settings().get("groq_api_key")
+
+    def set_groq_api_key(self, key: str) -> None:
+        self.update_settings({"groq_api_key": key.strip()})
+
+    def get_openai_api_key(self) -> Optional[str]:
+        env_key = os.getenv("OPENAI_API_KEY")
+        if env_key:
+            return env_key.strip()
+        return self.get_settings().get("openai_api_key")
+
+    def get_active_provider(self) -> str:
+        env_prov = os.getenv("INBOXGPT_PROVIDER")
+        if env_prov:
+            return env_prov.lower().strip()
+        settings = self.get_settings()
+        if settings.get("provider"):
+            return settings.get("provider").lower().strip()
+        if self.get_nvidia_api_key():
+            return "nvidia"
+        if self.get_groq_api_key():
+            return "groq"
+        if self.get_gemini_api_key():
+            return "gemini"
+        if self.get_openai_api_key():
+            return "openai"
+        return "heuristic"
+
 
     def get_model_name(self) -> str:
         settings = self.get_settings()
@@ -144,3 +187,31 @@ class Config:
 # Global default configuration instance
 config = Config()
 
+
+
+import logging
+from logging.handlers import RotatingFileHandler
+
+def configure_logging(log_level: int = logging.INFO) -> logging.Logger:
+    """Configures structured rotating file logger for InboxGPT (5MB, 3 backups)."""
+    log_path = config.log_file
+    logger = logging.getLogger("inboxgpt")
+    if not logger.handlers:
+        logger.setLevel(log_level)
+        try:
+            handler = RotatingFileHandler(
+                str(log_path),
+                maxBytes=5 * 1024 * 1024,
+                backupCount=3,
+                encoding="utf-8",
+            )
+            formatter = logging.Formatter(
+                "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+        except Exception:
+            pass
+    return logger
+
+logger = configure_logging()
