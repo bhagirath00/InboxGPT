@@ -36,6 +36,7 @@ jobs:
           pytest -v
 
       - name: Publish package to NPM
+        if: ${{ secrets.NPM_TOKEN != '' }}
         run: |
           npm publish --access public
         env:
