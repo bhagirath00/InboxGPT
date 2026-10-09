@@ -1,8 +1,7 @@
 """Agent state schema for LangGraph inbox triage and cleanup pipeline."""
 
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from typing_extensions import TypedDict
-import operator
 
 from inboxgpt.gmail.models import (
     ActionResult,

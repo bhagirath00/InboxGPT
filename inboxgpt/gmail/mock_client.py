@@ -3,7 +3,6 @@
 import copy
 from typing import List, Optional
 from inboxgpt.gmail.models import (
-    ActionType,
     ActionResult,
     EmailCategory,
     EmailMessage,
@@ -87,6 +86,45 @@ class MockGmailClient:
             message=f"Successfully moved {affected} emails to Trash.",
         )
 
+    def batch_delete(self, message_ids: List[str]) -> ActionResult:
+        """Permanently delete emails from mock storage."""
+        target_ids = set(message_ids)
+        initial_len = len(self._emails)
+        self._emails = [e for e in self._emails if e.id not in target_ids]
+        self._trash = [e for e in self._trash if e.id not in target_ids]
+        deleted = initial_len - len(self._emails)
+        return ActionResult(
+            action_id="delete",
+            success=True,
+            affected_count=deleted,
+            message=f"Permanently deleted {deleted} emails from mock storage.",
+        )
+
+    def batch_untrash(self, message_ids: List[str]) -> ActionResult:
+        """Restore specified email IDs from trash back to active inbox."""
+        target_ids = set(message_ids)
+        affected = 0
+
+        remaining_trash = []
+        for e in self._trash:
+            if e.id in target_ids:
+                if "TRASH" in e.labels:
+                    e.labels.remove("TRASH")
+                if "INBOX" not in e.labels:
+                    e.labels.append("INBOX")
+                self._emails.append(e)
+                affected += 1
+            else:
+                remaining_trash.append(e)
+
+        self._trash = remaining_trash
+        return ActionResult(
+            action_id="untrash",
+            success=True,
+            affected_count=affected,
+            message=f"Successfully restored {affected} emails from Trash to Inbox.",
+        )
+
     def batch_archive(self, message_ids: List[str]) -> ActionResult:
         """Archive specified email IDs by removing the INBOX label."""
         target_ids = set(message_ids)
@@ -115,6 +153,15 @@ class MockGmailClient:
             if e.id in target_ids:
                 if label_name not in e.labels:
                     e.labels.append(label_name)
+                affected += 1
+
+        for e in list(self._archived):
+            if e.id in target_ids:
+                if label_name not in e.labels:
+                    e.labels.append(label_name)
+                if label_name == "INBOX":
+                    self._archived.remove(e)
+                    self._emails.append(e)
                 affected += 1
 
         return ActionResult(

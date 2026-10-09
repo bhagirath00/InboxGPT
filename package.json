@@ -1,6 +1,6 @@
 {
   "name": "inboxgpt",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Terminal-first AI Gmail management agent with LangGraph Human-in-the-Loop safety.",
   "main": "bin/inboxgpt.js",
   "bin": {
@@ -30,6 +30,18 @@
     "README.md",
     "pyproject.toml"
   ],
+  "dependencies": {
+    "@paper-design/shaders": "^0.0.1",
+    "@radix-ui/react-slot": "^1.1.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.475.0",
+    "tailwind-merge": "^3.0.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0"
+  },
   "engines": {
     "node": ">=16.0.0"
   }

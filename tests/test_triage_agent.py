@@ -1,6 +1,6 @@
 """Tests for the Safe Intelligent Agent Triage Engine."""
 
-from datetime import date, timedelta
+from datetime import date
 from inboxgpt.agent.triage_agent import is_protected_email, plan_agent_cleanup
 from inboxgpt.gmail.models import ActionType, EmailCategory, EmailMessage
 

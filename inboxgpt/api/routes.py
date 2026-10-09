@@ -11,7 +11,6 @@ from inboxgpt.gmail.client import get_gmail_client
 from inboxgpt.gmail.models import (
     ActionResult,
     ActionType,
-    EmailCategory,
     EmailMessage,
     InboxStats,
     ProposedAction,

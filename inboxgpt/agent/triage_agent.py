@@ -1,8 +1,7 @@
 """Intelligent Agent Triage Engine with Strict Safety Rules & Zero-Lag Execution."""
 
 from datetime import date, datetime, timedelta
-import email.utils
-import re
+import email.utils as email_utils
 from typing import List, Optional, Tuple
 import uuid
 
@@ -20,7 +19,7 @@ def parse_date_safe(date_str: str) -> Optional[date]:
     if not date_str:
         return None
     try:
-        return email.utils.parsedate_to_datetime(date_str).date()
+        return email_utils.parsedate_to_datetime(date_str).date()
     except Exception:
         try:
             return datetime.fromisoformat(date_str).date()
@@ -68,7 +67,7 @@ def plan_agent_cleanup(
 ) -> Tuple[Optional[ProposedAction], str]:
     """
     Intelligently interpret natural language user instruction and generate a safe proposal.
-    
+
     Safety Guarantees:
     - Never deletes Starred or Priority emails.
     - Accurately filters by timeframe ("today", "yesterday", "this week").
@@ -132,15 +131,15 @@ def plan_agent_cleanup(
     matching_emails: List[EmailMessage] = []
     protected_count = 0
 
-    for email in emails:
+    for msg in emails:
         # Safety Check First:
-        protected, reason = is_protected_email(email)
+        protected, reason = is_protected_email(msg)
         if protected:
             protected_count += 1
             continue
 
         # Timeframe Check:
-        msg_date = parse_date_safe(email.date)
+        msg_date = parse_date_safe(msg.date)
         if timeframe == "today":
             if msg_date != today:
                 continue
@@ -152,12 +151,12 @@ def plan_agent_cleanup(
                 continue
 
         # Category Check:
-        if email.category in target_categories:
-            matching_emails.append(email)
+        if msg.category in target_categories:
+            matching_emails.append(msg)
 
     if not matching_emails:
-        msg = f"No {category_desc} found for {timeframe_desc}. (Preserved {protected_count} Starred/Important emails)."
-        return None, msg
+        summary_msg = f"No {category_desc} found for {timeframe_desc}. (Preserved {protected_count} Starred/Important emails)."
+        return None, summary_msg
 
     count = len(matching_emails)
     destination = "Trash in live Gmail" if action_type == ActionType.TRASH else "Archive (All Mail)"

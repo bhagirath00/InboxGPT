@@ -1,13 +1,12 @@
 """Gmail API service integration and client factory."""
 
 import base64
-import email
 import threading
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Protocol
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from inboxgpt.auth.oauth import get_credentials
 from inboxgpt.gmail.mock_client import MockGmailClient
@@ -26,6 +25,7 @@ class GmailServiceProtocol(Protocol):
 
     def get_user_email(self) -> str: ...
 
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8))
     def list_messages(
         self,
         query: str = "",
@@ -33,10 +33,18 @@ class GmailServiceProtocol(Protocol):
         label_ids: Optional[List[str]] = None,
     ) -> List[EmailMessage]: ...
 
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8))
     def get_message(self, message_id: str) -> Optional[EmailMessage]: ...
+
+    def batch_delete(self, message_ids: List[str]) -> ActionResult: ...
 
     def batch_trash(self, message_ids: List[str]) -> ActionResult: ...
 
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8))
+    def batch_untrash(self, message_ids: List[str]) -> ActionResult: ...
+
+
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8))
     def batch_archive(self, message_ids: List[str]) -> ActionResult: ...
 
     def batch_add_label(self, message_ids: List[str], label_name: str) -> ActionResult: ...
@@ -195,6 +203,7 @@ class LiveGmailClient:
             importance_reason=importance_reason,
         )
 
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8))
     def list_messages(
         self,
         query: str = "",
@@ -202,7 +211,7 @@ class LiveGmailClient:
         label_ids: Optional[List[str]] = None,
     ) -> List[EmailMessage]:
         try:
-            messages_refs = []
+            messages_refs: List[Dict[str, Any]] = []
             page_token = None
 
             # Follow pagination until we hit max_results or no more pages
@@ -268,6 +277,7 @@ class LiveGmailClient:
         except HttpError as e:
             raise RuntimeError(f"Gmail API error fetching messages: {e}")
 
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8))
     def get_message(self, message_id: str) -> Optional[EmailMessage]:
         try:
             msg = (
@@ -289,6 +299,8 @@ class LiveGmailClient:
             return True
         except Exception:
             return False
+
+    def batch_delete(self, message_ids: List[str]) -> ActionResult: ...
 
     def batch_trash(self, message_ids: List[str]) -> ActionResult:
         """Trash messages and their conversation threads in live Gmail."""
@@ -327,6 +339,8 @@ class LiveGmailClient:
             message=f"Moved {affected} emails to Trash in live Gmail.",
         )
 
+
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8))
     def batch_archive(self, message_ids: List[str]) -> ActionResult:
         """Archive by removing INBOX label."""
         try:
@@ -353,9 +367,9 @@ class LiveGmailClient:
             # First ensure label exists or retrieve its id
             labels_resp = self.service.users().labels().list(userId=self._user_id).execute()
             label_id = None
-            for l in labels_resp.get("labels", []):
-                if l.get("name", "").lower() == label_name.lower():
-                    label_id = l.get("id")
+            for lbl in labels_resp.get("labels", []):
+                if lbl.get("name", "").lower() == label_name.lower():
+                    label_id = lbl.get("id")
                     break
 
             if not label_id:

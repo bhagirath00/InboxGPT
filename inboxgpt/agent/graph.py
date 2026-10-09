@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 import uuid
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
-from langgraph.types import Command, interrupt
+from langgraph.types import interrupt
 
 from inboxgpt.agent.llm import classify_email
 from inboxgpt.agent.state import AgentState
@@ -15,7 +15,6 @@ from inboxgpt.gmail.models import (
     ActionStatus,
     ActionType,
     EmailCategory,
-    EmailMessage,
     InboxStats,
     ProposedAction,
     RiskLevel,
@@ -200,6 +199,8 @@ def create_inbox_graph(
                 p.status = ActionStatus.APPROVED
                 if p.action_type == ActionType.TRASH:
                     res = approval_tools.execute_trash(p, dry_run=dry_run)
+                elif p.action_type == ActionType.DELETE:
+                    res = approval_tools.execute_delete(p, dry_run=dry_run)
                 elif p.action_type == ActionType.ARCHIVE:
                     res = approval_tools.execute_archive(p, dry_run=dry_run)
                 elif p.action_type == ActionType.LABEL:
@@ -238,7 +239,7 @@ def create_inbox_graph(
         proposals = state.get("proposed_actions", [])
 
         lines = [
-            f"=== InboxGPT Triage Report ===",
+            "=== InboxGPT Triage Report ===",
             f"Total Emails Analyzed: {stats.total_emails}",
             f"  • Important:   {stats.important_count}",
             f"  • Newsletter:  {stats.newsletter_count}",
