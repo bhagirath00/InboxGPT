@@ -171,7 +171,7 @@ class Config:
 
 
     def clear_session(self) -> None:
-        """Clear active OAuth token and email disk cache for logout or account switching."""
+        """Clear active OAuth token, session email, and email disk cache for logout or account switching."""
         if self.token_file.exists():
             try:
                 self.token_file.unlink()
@@ -182,6 +182,14 @@ class Config:
                 self.cache_file.unlink()
             except Exception:
                 pass
+        try:
+            settings = self.get_settings()
+            if "last_authenticated_email" in settings:
+                settings.pop("last_authenticated_email", None)
+                with open(self.settings_file, "w", encoding="utf-8") as f:
+                    json.dump(settings, f, indent=2)
+        except Exception:
+            pass
 
 
 # Global default configuration instance

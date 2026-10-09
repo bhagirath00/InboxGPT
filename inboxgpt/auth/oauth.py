@@ -1,5 +1,7 @@
 """Google OAuth 2.0 flow and token management for Gmail API."""
 
+import os
+import socket
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -7,7 +9,7 @@ from google.auth.transport.requests import Request
 from google.auth.exceptions import RefreshError
 from inboxgpt.config import logger
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google_auth_oauthlib.flow import InstalledAppFlow, WSGITimeoutError
 
 from inboxgpt.config import config
 
@@ -75,8 +77,13 @@ def run_oauth_flow(
     credentials_path: Optional[Path] = None,
     port: int = 0,
     select_account: bool = False,
+    timeout_seconds: int = 60,
 ) -> Credentials:
-    """Execute the browser-based OAuth 2.0 consent flow and store the token."""
+    """Execute the browser-based OAuth 2.0 consent flow and store the token.
+    
+    Enforces a strict 60-second timeout. If the user does not log in within 60 seconds,
+    the server terminates immediately and any session or token is destroyed.
+    """
     client_id = config.get_google_client_id()
     client_secret = config.get_google_client_secret()
 
@@ -118,20 +125,50 @@ def run_oauth_flow(
     success_text = "Authentication Successful! InboxGPT is now connected to your Gmail account. You may close this tab and return to your terminal."
 
     prompt_msg = (
-        "\n[bold green]Opening your browser for Google Sign-In...[/bold green]\n"
-        "[dim]If your browser does not pop up automatically, click or copy this link:[/dim]\n"
-        "[bold underline cyan]{url}[/bold underline cyan]\n"
+        "\nOpening your browser for Google Sign-In...\n"
+        "If your browser does not pop up automatically, click or copy this link:\n"
+        "{url}\n\n"
+        f"⏳ Waiting for Google Sign-In (timeout: {timeout_seconds} seconds)...\n"
+        f"⚠️  If sign-in is not completed within 1 minute, the request will automatically expire and destroy all session tokens.\n"
     )
 
-    # Execute single, atomic OAuth local server flow on authorized port 8080
-    creds = flow.run_local_server(
-        port=target_port,
-        open_browser=True,
-        authorization_prompt_message=prompt_msg,
-        success_message=success_text,
-        access_type="offline",
-        prompt="consent select_account" if select_account else "consent",
-    )
+    server_kwargs = {
+        "open_browser": True,
+        "authorization_prompt_message": prompt_msg,
+        "success_message": success_text,
+        "access_type": "offline",
+        "prompt": "consent select_account" if select_account else "consent",
+        "timeout_seconds": timeout_seconds,
+    }
+
+    try:
+        try:
+            creds = flow.run_local_server(
+                port=target_port,
+                **server_kwargs,
+            )
+        except OSError as e:
+            # If target_port (8080) is temporarily occupied, fallback to port 0
+            if "address already in use" in str(e).lower() or getattr(e, "winerror", None) == 10048:
+                creds = flow.run_local_server(
+                    port=0,
+                    **server_kwargs,
+                )
+            else:
+                raise
+    except (WSGITimeoutError, TimeoutError, socket.timeout) as te:
+        # Strict timeout enforcement: purge token & clear session
+        config.clear_session()
+        raise TimeoutError(
+            f"Google Sign-In timed out after {timeout_seconds} seconds. "
+            "No login was completed, and any pending token/session was destroyed."
+        ) from te
+    except KeyboardInterrupt:
+        config.clear_session()
+        raise
+    except Exception:
+        config.clear_session()
+        raise
 
     # Persist the new credentials to ~/.inboxgpt/token.json
     config.token_file.parent.mkdir(parents=True, exist_ok=True)

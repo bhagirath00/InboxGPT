@@ -186,6 +186,10 @@ def switch_command():
                 switch_command()
             elif result == "LOGOUT":
                 logout_command()
+    except TimeoutError as te:
+        console.print(f"\n[bold red]⏱️  Sign-in Timeout:[/bold red] {te}\n")
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Account switch cancelled by user.[/yellow]")
     except Exception as e:
         console.print(f"[bold red]Account switch failed: {e}[/bold red]")
 
@@ -227,6 +231,10 @@ def login_command():
                 switch_command()
             elif result == "LOGOUT":
                 logout_command()
+    except TimeoutError as te:
+        console.print(f"\n[bold red]⏱️  Sign-in Timeout:[/bold red] {te}\n")
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Sign-in cancelled by user.[/yellow]")
     except Exception as e:
         console.print(f"[bold red]Login failed: {e}[/bold red]")
 
