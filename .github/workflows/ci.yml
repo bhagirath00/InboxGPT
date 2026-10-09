@@ -7,14 +7,44 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  lint-and-typecheck:
+    name: Code Quality & Type Check
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Lint & Type Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy
+
+      - name: Run Ruff Linter
+        run: |
+          ruff check inboxgpt/
+
+      - name: Run Mypy Type Analysis
+        run: |
+          mypy --ignore-missing-imports inboxgpt/ || true
+
+  test:
+    name: Test Matrix (${{ matrix.os }} - Py ${{ matrix.python-version }})
+    needs: [lint-and-typecheck]
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
@@ -27,8 +57,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]" || pip install -e .
-          pip install pytest
+          pip install pytest pytest-cov
 
-      - name: Run unit test suite
+      - name: Run test suite with coverage
         run: |
-          pytest -v
+          pytest -v --cov=inboxgpt --cov-report=term --cov-report=xml
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        with:
+          name: coverage-report
+          path: coverage.xml
