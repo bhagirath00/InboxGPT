@@ -13,8 +13,3 @@
 - [ ] **Protected items safe**: Starred, 2FA, OTPs, receipts, and priority messages are untouched.
 - [ ] **Unit tests added or updated**: All tests pass via `pytest`.
 - [ ] **No committed secrets**: No `.env`, API keys, or OAuth credentials are included in this PR.
-
-## Testing Steps
-<!-- How can reviewers test and verify this change? -->
-1. Run `pytest`
-2. ...
