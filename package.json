@@ -8,7 +8,9 @@
   },
   "scripts": {
     "start": "node ./bin/inboxgpt.js",
-    "test": "pytest"
+    "test": "pytest",
+    "prepublishOnly": "node scripts/prepare-npm.js",
+    "postpublish": "node scripts/restore-npm.js"
   },
   "keywords": [
     "gmail",
