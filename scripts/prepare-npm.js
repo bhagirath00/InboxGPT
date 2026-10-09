@@ -3,7 +3,7 @@ const path = require("path");
 
 const rootDir = path.resolve(__dirname, "..");
 const readmePath = path.join(rootDir, "README.md");
-const backupPath = path.join(rootDir, "README.github.bak");
+const backupPath = path.join(__dirname, "README.github.bak");
 
 // 1. Backup original GitHub README.md
 if (fs.existsSync(readmePath)) {
