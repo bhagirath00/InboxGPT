@@ -1,5 +1,7 @@
 """Unit tests for multi-provider AI model support (NVIDIA NIM free API, Groq, Gemini, Heuristics)."""
 
+from urllib.parse import urlparse
+
 from inboxgpt.agent.llm import get_llm, heuristic_classify_email
 from inboxgpt.gmail.models import EmailCategory, EmailMessage
 
@@ -22,7 +24,8 @@ def test_groq_provider_instantiation(monkeypatch):
     llm = get_llm()
     assert llm is not None
     assert type(llm).__name__ == "ChatOpenAI"
-    assert "api.groq.com" in str(llm.openai_api_base)
+    base_url = str(llm.openai_api_base)
+    assert urlparse(base_url).hostname == "api.groq.com"
 
 
 def test_heuristic_fallback_when_no_llm_configured(monkeypatch):
