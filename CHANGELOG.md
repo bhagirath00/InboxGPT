@@ -23,10 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Bound `shift+d` in Textual TUI to trigger permanent delete with safety checks.
 - **Selective Audit Undo**:
   - Enhanced `inboxgpt undo [action_id]` to allow cherry-picking specific transactions from `inboxgpt history`.
-- **50-Email Ground-Truth Evaluation Benchmark**: Curated benchmark dataset (`benchmark_data.json`) covering 2FA OTPs, bank fraud alerts, work priorities, newsletters, promotional sales, and phishing scams with 100% classification accuracy (`scripts/run_eval.py`).
 - **Inviolable Human-in-the-Loop Barrier**: Enforced LangGraph `interrupt()` pause before destructive actions (`trash`, `archive`); zero autonomous deletions without user confirmation.
 - **Audit Log & Undo Command**: Local transaction journal (`~/.inboxgpt/audit_log.json`) tracking executed actions with a single-command CLI revert (`inboxgpt undo`) and history viewer (`inboxgpt history`).
-- **Adversarial Prompt-Injection Defense Tests**: Pytest test suite (`tests/test_prompt_injection_safety.py`) proving hostile email payloads cannot hijack execution or bypass protected email invariants.
 - **Reliability Engineering**:
   - `tenacity` exponential backoff retries (`@retry`) on all upstream Gmail API requests.
   - Automatic `RefreshError` token recovery and cache purging on revoked Google credentials.
@@ -37,12 +35,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Replaced multi-step first-run menu with an immediate, direct `y/n` Google Sign-In prompt.
-- Refactored `heuristic_classify_email` with fast deterministic rule classification yielding 100% benchmark category accuracy.
+- Refactored `heuristic_classify_email` with fast deterministic rule classification for high-precision email categorization.
 - Switched OAuth server flow to atomic authorized port `8080`, eliminating state mismatch and random port failures.
+- **TUI Button Overhaul & Minimalist Aesthetic**:
+  - Unified all buttons to pure `#000000` deep black with clean, single rounded borders (`round #3f3f46`), removing outer borders and flat lines across modal dialogs (`AgentCommandModal`, `ActionProposalModal`, `SwitchAccountModal`, `HelpModal`).
+  - Disabled Textual's default reverse text styling (`text-style: not reverse bold !important`) to eliminate solid white selection boxes on the Sync button and quick action pills.
+  - Stripped decorative emojis from modal headers and reading pane titles for a clean, distraction-free terminal look.
 
 ### Security
 - Invariant safety checks in `is_protected_email()` strictly prevent trashing or archiving Starred, 2FA/OTP, and financial emails.
 - Local-first zero-telemetry architecture: tokens and email bodies remain strictly on the user's filesystem.
+- Hardened CI/CD workflows with explicit `permissions: contents: read` to enforce least-privilege token access for CodeQL compliance.
+- Strict `urlparse` hostname validation in unit test suites preventing partial URL matching alerts.
 
 ---
 
