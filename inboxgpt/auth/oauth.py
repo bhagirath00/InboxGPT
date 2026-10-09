@@ -1,10 +1,11 @@
 """Google OAuth 2.0 flow and token management for Gmail API."""
 
-import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from google.auth.transport.requests import Request
+from google.auth.exceptions import RefreshError
+from inboxgpt.config import logger
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
@@ -49,8 +50,17 @@ def get_credentials(interactive: bool = False) -> Optional[Credentials]:
             # Save the refreshed token
             with open(token_path, "w", encoding="utf-8") as f:
                 f.write(creds.to_json())
-        except Exception:
-            pass
+            logger.info("Successfully refreshed Google OAuth token.")
+        except RefreshError as e:
+            logger.warning("Google OAuth token expired or was revoked: %s. Purging stale token.", e)
+            try:
+                token_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+            creds = None
+        except Exception as e:
+            logger.warning("Unexpected error refreshing Google OAuth token: %s", e)
+            creds = None
 
     if not creds or not creds.valid:
         if interactive:
@@ -107,23 +117,21 @@ def run_oauth_flow(
     target_port = port or 8080
     success_text = "Authentication Successful! InboxGPT is now connected to your Gmail account. You may close this tab and return to your terminal."
 
-    server_kwargs = {
-        "open_browser": True,
-        "success_message": success_text,
-        "access_type": "offline",
-        "prompt": "consent select_account" if select_account else "consent",
-    }
+    prompt_msg = (
+        "\n[bold green]Opening your browser for Google Sign-In...[/bold green]\n"
+        "[dim]If your browser does not pop up automatically, click or copy this link:[/dim]\n"
+        "[bold underline cyan]{url}[/bold underline cyan]\n"
+    )
 
-    try:
-        creds = flow.run_local_server(
-            port=target_port,
-            **server_kwargs,
-        )
-    except Exception:
-        creds = flow.run_local_server(
-            port=0,
-            **server_kwargs,
-        )
+    # Execute single, atomic OAuth local server flow on authorized port 8080
+    creds = flow.run_local_server(
+        port=target_port,
+        open_browser=True,
+        authorization_prompt_message=prompt_msg,
+        success_message=success_text,
+        access_type="offline",
+        prompt="consent select_account" if select_account else "consent",
+    )
 
     # Persist the new credentials to ~/.inboxgpt/token.json
     config.token_file.parent.mkdir(parents=True, exist_ok=True)
